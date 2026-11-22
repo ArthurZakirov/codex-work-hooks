@@ -42,13 +42,13 @@ codex plugin add work-hooks@work-hooks
 
 Start Codex normally and review both hook definitions in `/hooks`.
 
-**Classifier selection.** Jev is the default. Supply `JEV_API_KEY` before starting Codex, or select the Codex classifier with `WORK_HOOKS_CLASSIFIER=codex`. Jev requires curl 8.3+ and sends the request, pending request, and acceptance criteria to TypeSafe.
+**Classifier selection.** Jev is the default. Supply `JEV_API_KEY` before starting Codex, or select the Codex classifier with `WORK_HOOKS_CLASSIFIER=codex`. Jev uses Python’s HTTPS client and sends the request, pending request, and acceptance criteria to TypeSafe.
 
 ## Try the dispatch scenario
 
 The [dispatch service](tests/fixtures/dispatch_api/service.py) already supports creating and reading manifests in memory. [OPS-17](tests/fixtures/dispatch_api/OPS-17.md) asks for deletion. It is intentionally unimplemented. The [executable scenarios](tests/integration/scope.feature) contain the prompts, expected decisions, and the clarification sequence.
 
-For a manual trial, run `tests/fixtures/dispatch_api/open-chat`. It creates an isolated Codex home, trusts the disposable workspace, installs this checkout, and accepts enabled hooks for that invocation. It uses file-backed Codex login and the Jev environment described below. First request the endpoint without identifying the ticket. Next submit the ticket text or its path as a separate message. Then ask to implement it. Only the configured fixture supplies requirements in demo mode.
+For a manual trial, run `tests/fixtures/dispatch_api/open-chat`. It creates an isolated Codex home, trusts the disposable workspace, installs this checkout, and accepts enabled hooks for that invocation. On macOS it reuses a compatible Python and Codex, installs missing prerequisites using Homebrew/npm when available, and asks privately for a missing TypeSafe key. It reuses file-backed Codex login or opens the supported login flow. Every interactive launch first checks a real Jev submission. First request the endpoint without identifying the ticket. Next submit the ticket text or its path as a separate message. Then ask to implement it. Only the configured fixture supplies requirements in demo mode.
 
 ### Run the evaluation
 

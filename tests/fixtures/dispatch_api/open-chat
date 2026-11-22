@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eu
 fixture=$(cd "$(dirname "$0")" && pwd)
+source "$fixture/prepare-mac.sh"
+prepare_tools
+export WORK_HOOKS_CLASSIFIER=jev
+prepare_jev
 checkout=$(cd "$fixture/../../.." && pwd)
 experiment=$(mktemp -d "${TMPDIR:-/tmp}/dispatch-eval-XXXXXX")
 login_home=${WORK_HOOKS_TEST_AUTH_HOME:-${CODEX_HOME:-$HOME/.codex}}
@@ -22,9 +26,13 @@ import sys
 
 Path(sys.argv[2]).write_text(f'[projects.{json.dumps(sys.argv[1])}]\ntrust_level = "trusted"\n')
 PY
+if ! codex login status >/dev/null 2>&1; then
+  [[ -t 0 ]] || { echo "The isolated trial needs Codex login. Start interactively once or supply WORK_HOOKS_TEST_AUTH_HOME." >&2; exit 1; }
+  codex login
+fi
 codex plugin marketplace add "$checkout" >/dev/null
 install=$(codex plugin add work-hooks@work-hooks --json)
-if [[ ${1:-} == --check || ${1:-} == --check-submit ]]; then
+probe() {
   PLUGIN_ROOT=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["installedPath"])' <<< "$install")
   export PLUGIN_ROOT
   export PLUGIN_DATA="$experiment/check-data"
@@ -53,7 +61,12 @@ for event in (
         sys.exit(response.get("reason", "No review report was produced."))
     print(event["hook_event_name"], "passed")
 PYTHON
-  exit
-fi
+}
+case ${1:-} in
+  --check|--check-submit) probe "$1"; exit ;;
+  "") probe --check-submit ;;
+  *) echo "Usage: open-chat [--check|--check-submit]" >&2; exit 2 ;;
+esac
+unset PLUGIN_ROOT PLUGIN_DATA
 exec codex --no-daemon --dangerously-bypass-hook-trust -s workspace-write \
   -m "${WORK_HOOKS_MODEL:-gpt-6-luna}" -c 'model_reasoning_effort="low"'

@@ -2,7 +2,10 @@
 from dataclasses import asdict
 import json
 from pathlib import Path
-from work_hooks.adapters.process import run_command
+from urllib.error import HTTPError, URLError
+from urllib.request import build_opener, HTTPRedirectHandler, Request
+import os
+from work_hooks.adapters.process import HookCommandError
 from typing import Any
 
 from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput, Ownership
@@ -53,13 +56,27 @@ def classify(evidence: ClassificationInput) -> Assessment:
     return Assessment(kind, score, reason, answers["replacement"]["noul"] >= 0.5)
 
 
+class _NoRedirect(HTTPRedirectHandler):
+    """Keep the authorization header on the configured TypeSafe endpoint."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def _ask_jev(state: dict[str, str], questions: dict[str, Any]) -> dict[str, Any]:
-    """curl expands the credential internally; it never appears in arguments or logs."""
+    """Send a typed decision to TypeSafe over HTTPS; no local model is needed."""
+    key = os.environ.get("JEV_API_KEY")
+    if not key:
+        raise HookCommandError("Jev classifier: JEV_API_KEY is missing from the hook environment.")
     payload = {"model": "jev-latest", "state": state, "questions": questions}
-    result = run_command("Jev classifier",
-        ["curl", "--disable", "--silent", "--show-error", "--fail", "--max-time", "60",
-         "--variable", "%JEV_API_KEY", "--expand-header", "Authorization: Bearer {{JEV_API_KEY}}",
-         "--header", "Content-Type: application/json", "--data-binary", "@-",
-         "https://api.typesafe.ai/v1/systemone"],
-        input=json.dumps(payload), timeout=65)
-    return json.loads(result.stdout)["answers"]
+    request = Request("https://api.typesafe.ai/v1/systemone",
+                      data=json.dumps(payload).encode(),
+                      headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    try:
+        with build_opener(_NoRedirect()).open(request, timeout=60) as response:
+            return json.load(response)["answers"]
+    except HTTPError as error:
+        hint = {401: "Check the TypeSafe credential.", 403: "Check account access.",
+                429: "Check rate limits and quota."}.get(error.code, "Check TypeSafe availability.")
+        raise HookCommandError(f"Jev classifier: TypeSafe returned HTTP {error.code}. {hint}") from None
+    except (URLError, OSError) as error:
+        raise HookCommandError(f"Jev classifier: HTTPS connection to api.typesafe.ai failed ({type(error).__name__}).") from None
