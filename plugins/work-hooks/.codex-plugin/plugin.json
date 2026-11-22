@@ -1,0 +1,1 @@
+{"name":"work-hooks","version":"0.1.0","description":"Check work scope before implementation and review changes before handoff.","hooks":"./hooks/hooks.json"}

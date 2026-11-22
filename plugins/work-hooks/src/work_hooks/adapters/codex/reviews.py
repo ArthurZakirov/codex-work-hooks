@@ -1,0 +1,22 @@
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+import os
+import subprocess
+
+PROMPTS = Path(__file__).resolve().parents[2] / "resources/prompts"
+ROLES = ("experience", "standards", "correctness")
+
+
+def parallel_review(workspace: Path, request: str) -> str:
+    def review(role: str) -> str:
+        instructions = (PROMPTS / f"{role}.md").read_text()
+        result = subprocess.run(
+            ["codex", "--no-daemon", "exec", "--disable", "hooks", "--ephemeral",
+             "--skip-git-repo-check", "-s", "read-only", "-C", str(workspace), "-"],
+            input=f"Original work request:\n{request}\n\nReview instructions:\n{instructions}",
+            text=True, capture_output=True, check=True, timeout=240,
+            env={k: v for k, v in os.environ.items() if k != "JEV_API_KEY"})
+        return f"## {role.capitalize()}\n\n{result.stdout.strip()}\n"
+
+    with ThreadPoolExecutor(max_workers=len(ROLES)) as pool:
+        return "# Parallel review\n\n" + "\n".join(pool.map(review, ROLES))
