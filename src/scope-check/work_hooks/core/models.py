@@ -43,4 +43,3 @@ class Decision:
     session: Session
     message: str
     blocked: bool = False
-    review: bool = False

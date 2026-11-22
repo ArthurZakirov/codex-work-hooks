@@ -22,7 +22,6 @@ def main() -> None:
             requirements = DemoTicket(Path(fixture), directory)
             if event["hook_event_name"] == "UserPromptSubmit" and requirements.select(event["prompt"]):
                 sessions.save(directory, replace(sessions.load(directory), ownership="professional"))
-                (directory / "review-ready").unlink(missing_ok=True)
                 print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
                     "additionalContext": "Acknowledge the selected demo ticket and await the next request."}}))
                 return

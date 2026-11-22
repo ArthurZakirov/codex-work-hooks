@@ -11,18 +11,6 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/hooks/dispatch.py\"",
-            "statusMessage": "Reviewing experience, standards and correctness",
-            "timeout": 300
-          }
-        ]
-      }
     ]
   }
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Install and verify this checkout in the current Codex configuration."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -12,21 +13,42 @@ def main() -> None:
     checkout = Path(__file__).resolve().parent
     if sys.version_info < (3, 10):
         sys.exit("Use Python 3.10 or newer to run ./install.")
-    if os.environ.get("WORK_HOOKS_CLASSIFIER", "jev") != "jev":
-        sys.exit("Unset WORK_HOOKS_CLASSIFIER to select the default Jev classifier.")
-    if not os.environ.get("JEV_API_KEY"):
-        sys.exit("Export JEV_API_KEY in the shell that launches Codex, then rerun ./install.")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("plugin", choices=("scope-check", "parallel-review", "both"), nargs="?", default="both")
+    choice = parser.parse_args().plugin
+    names = ("scope-check", "parallel-review") if choice == "both" else (choice,)
+
+    home = Path(os.getenv("CODEX_HOME") or Path.home() / ".codex")
+    legacy = home / "plugins/cache/work-hooks/work-hooks"
+    if legacy.is_dir() and any(legacy.glob("*/.codex-plugin/plugin.json")):
+        sys.exit("The combined Work Hooks plugin is still cached. Run "
+                 "codex plugin remove work-hooks@work-hooks, then rerun this installer.")
+
+    if "scope-check" in names:
+        # Check credentials and connectivity before enabling a hook that gates every prompt.
+        _probe_scope(checkout / "src/scope-check")
+    if "parallel-review" in names:
+        subprocess.run(["codex", "login", "status"], check=True)
 
     _register_marketplace(checkout)
-    result = subprocess.check_output(["codex", "plugin", "add", "work-hooks@work-hooks", "--json"])
-    installed = Path(json.loads(result)["installedPath"])
-    for directory in (".codex-plugin", "hooks", "src"):
-        for source in (checkout / directory).rglob("*"):
-            if source.is_file() and "__pycache__" not in source.parts:
-                copied = installed / source.relative_to(checkout)
-                if not copied.is_file() or copied.read_bytes() != source.read_bytes():
-                    sys.exit(f"Installed plugin differs from this checkout at {source.relative_to(checkout)}.")
+    for name in names:
+        installed = _install_plugin(checkout, name)
+        print(f"Ready: {name} at {installed}")
 
+
+def _install_plugin(checkout: Path, name: str) -> Path:
+    result = subprocess.check_output(["codex", "plugin", "add", f"{name}@work-hooks", "--json"])
+    installed = Path(json.loads(result)["installedPath"])
+    package = checkout / "src" / name
+    for source in package.rglob("*"):
+        if source.is_file() and "__pycache__" not in source.parts:
+            copied = installed / source.relative_to(package)
+            if not copied.is_file() or copied.read_bytes() != source.read_bytes():
+                sys.exit(f"Installed plugin differs from checkout at {source.relative_to(package)}.")
+    return installed
+
+
+def _probe_scope(installed: Path) -> None:
     with TemporaryDirectory() as workspace:
         event = dict(hook_event_name="UserPromptSubmit", session_id="installation-check",
                      cwd=workspace, prompt="Build a banana game for my own amusement.")
@@ -37,7 +59,7 @@ def main() -> None:
         decision = json.loads(response)
         if decision != {}:
             sys.exit(decision.get("reason", "The personal test request was not approved."))
-    print(f"Installed files match and Jev approved a test submission. Plugin root: {installed}")
+    print("Scope classifier approved a test submission from the installation shell.")
 
 
 def _register_marketplace(checkout: Path) -> None:

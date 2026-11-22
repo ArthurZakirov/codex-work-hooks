@@ -1,69 +1,67 @@
 # Codex Work Hooks
 
-Check that a request fits its acceptance criteria before Codex starts work. When Codex tries to finish, three reviewers inspect the result in parallel.
+Install either plugin from one marketplace. Each has its own hook definitions, prompts, installed files and per-chat data. One repository lets us test their interaction and ship each plugin independently. [Marketplace entries](.agents/plugins/marketplace.json)
 
-## How it works
+| Install | What it does | What it needs |
+| --- | --- | --- |
+| `./install parallel-review` | Hands completed turns to three parallel reviewers and returns their report to the original worker | Codex login and access to the configured reviewer model |
+| `./install scope-check` | Checks professional requests against externally authorized requirements before implementation | Jev credential by default |
+| `./install both` | Enables both behaviors | Both sets of prerequisites |
 
-Follow an approved work request from left to right:
+## Install with stock Codex
+
+1. Install Python 3.10+ as `python3` and a Codex CLI with plugin hooks. Run `codex login` for local reviewer sessions.
+2. Clone the marketplace and change into the checkout.
+
+   ```sh
+   git clone https://github.com/ArthurZakirov/codex-work-hooks.git
+   cd codex-work-hooks
+   ```
+
+3. If installing Scope Check, configure its credential as described below.
+4. Run the install command from the table. Open a fresh `codex` and trust the installed plugin hooks when prompted. In `/hooks`, compare the source with the installed path printed by the installer.
+
+**Existing installations.** If upgrading from the combined plugin, remove its old registration with `codex plugin remove work-hooks@work-hooks`, then install your selection. Removing an old plugin can change access to its historical session data. Start a fresh chat for the new plugin IDs.
+
+**Switch later.** Use `/plugins` to manage installed plugins. To remove one explicitly, run `codex plugin remove scope-check@work-hooks` or `codex plugin remove parallel-review@work-hooks`. Rerun its install command to restore it. Start a new session after changing the selection.
+
+## Supply the Jev credential
+
+**macOS, including daemon-backed Codex.** In **Keychain Access**, choose the **login** keychain and create a new password item. Set **Keychain Item Name** to `codex-work-hooks.jev`, set **Account Name** to your macOS username and enter the Jev API key in **Password**. Scope Check looks up that item when its process has no exported key. The login keychain must be unlocked and macOS may ask you to allow access. You can then start stock `codex` normally.
+
+**Shell-based setup.** Supply `JEV_API_KEY` through your usual credential manager or shell environment, then run `codex --no-daemon` from that shell. The embedded server inherits that environment. A shared server already running can have an older environment. If both sources exist, the exported key takes precedence.
+
+**Verification.** Before enabling Scope Check, the installer runs a live synthetic submission from the installation shell. It then checks that the installed plugin files match the tested source. To check the actual launch environment, open a fresh Codex session and ask “Explain what an acceptance criterion is.” If the hook reports a missing credential, confirm the keychain item name and access permissions or use the shell launch above. An HTTP 401 means the provider received the request and rejected the credential. The Jev adapter uses Python HTTPS. [Credential lookup](src/scope-check/work_hooks/adapters/jev_key.py)
+
+## What happens in a turn
 
 ```mermaid
 flowchart LR
-    A["UserPromptSubmit<br/>Who is the work for?"] -->|Personal| B
-    A -->|Professional| G["Check intent and authorized scope"]
-    G -->|Work approved| B["Codex works"]
-    B --> C["Stop<br/>Start reviews"]
-    C --> U["User experience"]
-    C --> S["Coding standards"]
-    C --> K["Correctness"]
-    U --> R["Combined report"]
-    S --> R
-    K --> R
-    R --> F["Codex verifies and fixes"]
+    A[Submission] -->|Scope Check enabled| G[Check work scope]
+    A -->|Scope Check disabled| W[Codex works]
+    G -->|Allowed| W
+    G -->|Blocked| H[Ask for clarification]
+    W -->|Parallel Review enabled| R[Stop]
+    R --> U[Experience]
+    R --> S[Standards]
+    R --> C[Correctness]
+    U & S & C --> F[Worker reads review.md]
 ```
 
-**UserPromptSubmit** can also pause an out-of-scope request and ask for clarification. Personal requests bypass professional scope grading and enter the same review cycle as approved professional work. For professional changes, only the configured requirements provider may supply scope. Chat text can identify a source or explain a dependency. [Submission policy](src/work_hooks/core/evaluate_submission.py)
+**Check work scope.** Personal requests proceed. Professional implementations need verified external requirements. The default requirements provider returns no evidence, so these requests remain blocked until a provider is configured. Explanation and colleague-assistance exceptions remain available. Chat text alone cannot authorize implementation. The demo supplies a fixture provider. The optional Codex classifier is selected with `WORK_HOOKS_CLASSIFIER=codex`. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py) · [Requirements port](src/scope-check/work_hooks/ports/requirements.py)
 
-**Stop** launches three read-only reviewer processes against the same workspace. Codex saves the combined report in the session’s plugin data directory. Explanation-only and criteria-only turns skip review. [Parallel reviews](src/work_hooks/adapters/codex/reviews.py)
+**Stop.** Parallel Review remembers the user prompt on submission. At a completed turn, including explanation turns, it runs three ephemeral read-only Codex sessions. The worker receives a short instruction containing the report path and can act on confirmed findings. The follow-up stop skips repeat review. This package makes its own decision to review independently of professional approval. [Review prompts](src/parallel-review/prompts) · [Report handoff](src/parallel-review/hooks/dispatch.py)
 
-## Requirement sources
+## Run the evaluations
 
-The [requirements port](src/work_hooks/ports/requirements.py) returns the current evidence for the session’s work item. A source adapter must authenticate the origin, check who authorized the requirement, and preserve the source reference, revision, author and text. It may combine a ticket with later colleague clarifications. A link or quotation in chat alone proves none of these.
+Install test dependencies with `python3 -m pip install -r tests/requirements.txt`. The following commands run from the checkout.
 
-The default provider returns no evidence. Until an authenticated adapter is configured in the composition root, professional implementation is blocked. Explanation and colleague-assistance exceptions remain available.
-
-## Install
-
-With Python 3.10+, an exported `JEV_API_KEY` and a signed-in Codex CLI that supports plugin hooks, install or refresh the plugin from this checkout:
-
-```sh
-./install
-```
-
-The installer verifies the cached hook files and sends a synthetic personal prompt to Jev from the launching shell. Start a fresh `codex` session and trust the updated Work Hooks entries when prompted. In `/hooks`, the source for “Checking work scope” should match the plugin root printed by the installer.
-
-**Classifier selection.** Jev is the default. Supply `JEV_API_KEY` before starting Codex, or select the Codex classifier with `WORK_HOOKS_CLASSIFIER=codex`. Jev uses Python’s HTTPS client and sends the request, pending request, and acceptance criteria to TypeSafe.
-
-## Try the dispatch scenario
-
-The [dispatch service](tests/fixtures/dispatch_api/service.py) already supports creating and reading manifests in memory. [OPS-17](tests/fixtures/dispatch_api/OPS-17.md) asks for deletion. It is intentionally unimplemented. The [executable scenarios](tests/integration/scope.feature) contain the prompts, expected decisions, and the clarification sequence.
-
-For a manual trial, run `tests/fixtures/dispatch_api/open-chat`. It creates an isolated Codex home, trusts the disposable workspace, installs this checkout, and accepts enabled hooks for that invocation. On macOS it reuses a compatible Python and Codex, installs missing prerequisites using Homebrew/npm when available, and asks privately for a missing TypeSafe key. It reuses file-backed Codex login or opens the supported login flow. Every interactive launch first checks a real Jev submission. First request the endpoint without identifying the ticket. Next submit the ticket text or its path as a separate message. Then ask to implement it. Only the configured fixture supplies requirements in demo mode.
-
-### Run the evaluation
-
-Install the test tools with `python -m pip install -r tests/requirements.txt`. Choose the level according to what you want to verify:
-
-| Level | Command | Observation |
+| Level | Command | What it verifies |
 | --- | --- | --- |
-| Unit · CI and local | `python -m pytest tests/unit` | Approval and review decisions with controlled inputs |
-| Integration · local | `WORK_HOOKS_CLASSIFIER=jev python -m pytest tests/integration` | Real classifier decisions over simulated turns; requires JEV_API_KEY |
-| Integration · local | `WORK_HOOKS_CLASSIFIER=codex python -m pytest tests/integration` | Same Gherkin scenarios with a subscribed Codex CLI, Luna at low effort |
-| [System scenario](tests/system/codex_submission.feature) · local | `WORK_HOOKS_TEST_AUTH_HOME="$HOME/.codex" python -m pytest tests/system` | Real installed hooks block the first turn, then resume the same read-only chat and acknowledge the selected ticket |
+| Unit, also in CI | `python3 -m pytest tests/unit` | Scope decisions and controlled adapter failures |
+| Integration, local | `python3 -m pytest tests/integration` | Live scope classification and a stand-alone review report |
+| System, local | `WORK_HOOKS_TEST_AUTH_HOME="$HOME/.codex" python3 -m pytest tests/system` | Independently installed plugins block or resume a real worker and deliver reviewer findings |
 
-The system test needs file-backed Codex login and Jev credentials. It registers only this checkout in a temporary Codex home and links the existing auth file. Default pytest discovery and GitHub Actions run the unit suite only.
+Live reviews use Codex login, a low reasoning effort and the default `gpt-6-luna` model. Set `WORK_HOOKS_MODEL` to an available reviewer model if needed. Integration scope scenarios use Jev by default. System scenarios use disposable Codex homes and need file-backed login for the test worker. [Review integration scenario](tests/integration/review.feature) · [Review system scenario](tests/system/review.feature)
 
-### Diagnose a trial launch
-
-Run `tests/fixtures/dispatch_api/open-chat --check` from the checkout in the same shell used for the trial. This installs a fresh isolated copy and exercises the configured classifier and all three reviewers on synthetic input. It prints the failing stage and exit status. If the account lacks the default Luna model, export `WORK_HOOKS_MODEL` with an available Codex model before retrying.
-
-For an error immediately after sending a message, use `open-chat --check-submit` to check just the submission hook.
+For the interactive demo, run `tests/fixtures/dispatch_api/open-chat`. It prepares the isolated workspace, installs both plugins and checks a real Jev submission before opening chat. Use `--check-submit` for just the submission probe or `--check` to also exercise the reviewers. [Sample service](tests/fixtures/dispatch_api/service.py) · [Demo ticket](tests/fixtures/dispatch_api/OPS-17.md)

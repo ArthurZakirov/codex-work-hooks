@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import build_opener, HTTPRedirectHandler, Request
-import os
+from work_hooks.adapters.jev_key import resolve_key
 import ssl
 import socket
 from work_hooks.adapters.process import HookCommandError
@@ -66,9 +66,7 @@ class _NoRedirect(HTTPRedirectHandler):
 
 def _ask_jev(state: dict[str, str], questions: dict[str, Any]) -> dict[str, Any]:
     """Send a typed decision to TypeSafe over HTTPS; no local model is needed."""
-    key = os.environ.get("JEV_API_KEY")
-    if not key:
-        raise HookCommandError("Jev classifier: JEV_API_KEY is missing from the hook environment.")
+    key = resolve_key()
     payload = {"model": "jev-latest", "state": state, "questions": questions}
     request = Request("https://api.typesafe.ai/v1/systemone",
                       data=json.dumps(payload).encode(),

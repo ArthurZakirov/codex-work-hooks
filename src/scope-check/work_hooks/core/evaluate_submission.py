@@ -9,7 +9,7 @@ def evaluate_submission(request: str, session: Session, classify: ScopeClassifie
                         requirements: Requirements, session_id: str) -> Decision:
     owner = classify.ownership(request, session.ownership, session.pending)
     if owner is Ownership.PERSONAL:
-        return Decision(replace(session, ownership=owner.value, approved=request), "", review=True)
+        return Decision(replace(session, ownership=owner.value, approved=request), "")
 
     session = replace(session, ownership=owner.value)
     records = requirements(session_id)
@@ -36,4 +36,4 @@ def evaluate_submission(request: str, session: Session, classify: ScopeClassifie
         message += "\nPreviously blocked request now approved:\n" + prior
     if kind is AssessmentKind.IMPLEMENTATION:
         message += "\nActive work item:\n" + criteria
-    return Decision(replace(session, pending="", approved=full_request), message, review=True)
+    return Decision(replace(session, pending="", approved=full_request), message)

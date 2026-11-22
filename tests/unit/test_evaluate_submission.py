@@ -16,13 +16,12 @@ class RequirementBoundaryTests(unittest.TestCase):
     def submit(self, prompt):
         return evaluate_submission(prompt, Session(), self.classifier, self.source, "test-session")
 
-    def test_personal_skips_scope_grading_but_schedules_review(self):
+    def test_personal_skips_scope_grading(self):
         self.classifier.ownership.return_value = Ownership.PERSONAL
         decision = self.submit("Build a game for me.")
         self.source.assert_not_called()
         self.classifier.classify.assert_not_called()
         self.assertFalse(decision.blocked or decision.message)
-        self.assertTrue(decision.review)
         self.assertEqual(decision.session.approved, "Build a game for me.")
 
     def test_perfect_grade_cannot_authorize_invented_criteria(self):
@@ -33,7 +32,7 @@ class RequirementBoundaryTests(unittest.TestCase):
         clarification = Requirement("chat/456", "v2", "owner", "Report the row number")
         self.source.side_effect = [(ticket,), (ticket, clarification)]
         self.submit("Implement validation")
-        self.assertTrue(self.submit("Add the clarified diagnostic").review)
+        self.assertFalse(self.submit("Add the clarified diagnostic").blocked)
         evidence = self.classifier.classify.call_args.args[0].work_item
         for record in (ticket, clarification):
             self.assertIn(record.source_ref, evidence)

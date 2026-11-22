@@ -12,7 +12,7 @@ scenarios("codex_submission.feature")
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@given("a fresh read-only Codex workspace with Work Hooks installed and no selected ticket", target_fixture="chat")
+@given("a fresh read-only Codex workspace with only Scope Check installed and no selected ticket", target_fixture="chat")
 def installed_chat(tmp_path):
     home = tmp_path / "codex"
     home.mkdir()
@@ -33,7 +33,7 @@ def installed_chat(tmp_path):
                               text=True, capture_output=True, timeout=100)
 
     run("plugin", "marketplace", "add", str(ROOT)).check_returncode()
-    run("plugin", "add", "work-hooks@work-hooks").check_returncode()
+    run("plugin", "add", "scope-check@work-hooks").check_returncode()
     flags = ["exec", "--json", "--trust", "--dangerously-bypass-hook-trust",
              "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6-luna",
              "-c", 'model_reasoning_effort="low"']
