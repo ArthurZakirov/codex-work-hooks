@@ -35,25 +35,56 @@ def _record_edit(directory: Path, call_id: str, groups: dict) -> None:
 
 
 def _review_pending(directory: Path) -> dict:
+    limit = _max_review_passes()
+    pass_number, groups = _claim_review_pass(directory, limit)
+    if not groups:
+        return {}
+
+    filename = "review.md" if pass_number == 1 else f"review-{pass_number}.md"
+    report = directory / filename
+    report.write_text(parallel_review(groups))
+    budget = f"{pass_number}/{limit}" if limit is not None else str(pass_number)
+    return {"decision": "block", "reason": f"Review pass {budget}. Read {report}. Verify findings against the recorded edits and fix confirmed issues."}
+
+
+def _max_review_passes() -> int | None:
+    home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    settings = home / "parallel-review.json"
+    if not settings.exists():
+        return 1
+
+    try:
+        value = json.loads(settings.read_text()).get("max_review_passes", 1)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Expected a JSON object in {settings}.") from None
+    if value == "unlimited":
+        return None
+    if type(value) is int and value >= 0:
+        return value
+    raise ValueError(f'In {settings}, set max_review_passes to a nonnegative integer or "unlimited".')
+
+
+def _claim_review_pass(directory: Path, limit: int | None) -> tuple[int, dict[str, list[str]]]:
+    """Assign pending edits a pass number before spending tokens, including on retries."""
     with sqlite3.connect(directory / "edits.db", timeout=260) as db:
         db.execute("BEGIN IMMEDIATE")
-        pending = db.execute("SELECT groups FROM edits WHERE reviewed = 0 ORDER BY rowid").fetchall()
-        if not pending:
-            return {}
+        previous, = db.execute("SELECT COALESCE(MAX(reviewed), 0) FROM edits").fetchone()
+        if limit is not None and previous >= limit:
+            return 0, {}
 
+        pending = db.execute("SELECT groups FROM edits WHERE reviewed = 0 ORDER BY rowid")
         groups: dict[str, list[str]] = {}
         for (encoded,) in pending:
             for category, sections in json.loads(encoded).items():
                 groups.setdefault(category, []).extend(sections)
 
-        report = directory / "review.md"
-        report.write_text(parallel_review(groups))
-        db.execute("UPDATE edits SET reviewed = 1 WHERE reviewed = 0")
-    return {"decision": "block", "reason": f"Read {report}. Verify findings against the recorded edits and fix confirmed issues."}
+        number = previous + 1
+        db.execute("UPDATE edits SET reviewed = ? WHERE reviewed = 0", (number,))
+        return number, groups
 
 
 if __name__ == "__main__":
     try:
         print(json.dumps(handle(json.load(sys.stdin))))
-    except (RuntimeError, OSError, sqlite3.Error, subprocess.TimeoutExpired) as error:
+    except (RuntimeError, ValueError, OSError, sqlite3.Error, subprocess.TimeoutExpired) as error:
         print(json.dumps({"decision": "block", "reason": f"Parallel review failed: {error}"}))

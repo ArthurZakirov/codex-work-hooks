@@ -46,4 +46,6 @@ def verify_report(workspace, handoff):
 
 @then("a follow-up stop does not request another review")
 def verify_followup(workspace):
+    send(workspace, "PostToolUse", tool_name="apply_patch", tool_use_id="repair",
+         tool_response="Exit code: 0\n", tool_input={"command": "*** Begin Patch\n*** Add File: fix.py\n+print(2)\n*** End Patch"})
     assert send(workspace, "Stop", stop_hook_active=True) == {}

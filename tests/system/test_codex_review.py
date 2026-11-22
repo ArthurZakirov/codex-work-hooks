@@ -20,6 +20,9 @@ def review_chat(tmp_path):
     (workspace / "service.py").write_bytes((ROOT / "tests/fixtures/dispatch_api/service.py").read_bytes())
     subprocess.run(["git", "init", "-q"], check=True, cwd=workspace)
     env = dict(os.environ, CODEX_HOME=str(home), HOME=str(tmp_path))
+    guide = tmp_path / "markdown-guide.md"
+    guide.write_text("The required title for NOTES.md is exactly # Reviewed Notes. Report a different title and propose the exact replacement.")
+    env["WORK_HOOKS_MARKDOWN_GUIDE"] = str(guide)
     env.pop("JEV_API_KEY", None)
     for args in (["marketplace", "add", str(ROOT)], ["add", "parallel-review@work-hooks"]):
         subprocess.run(["codex", "plugin", *args], env=env, cwd=workspace, check=True)
@@ -28,7 +31,7 @@ def review_chat(tmp_path):
 
 @when("the user makes a documentation edit", target_fixture="events")
 def request_handoff(chat):
-    prompt = ("Use the native apply_patch tool to add NOTES.md containing only # Notes. If a hook requests a report, read it and name "
+    prompt = ("Use the native apply_patch tool to add NOTES.md containing only # Notes. If a hook requests a report, read it and use apply_patch to replace # Notes with # Reviewed Notes. Then name "
               "the review section in your final message.")
     return _run_turn(chat, prompt)
 
@@ -57,9 +60,11 @@ def _run_turn(chat, prompt):
     return [json.loads(line) for line in output.splitlines()]
 
 
-@then("the worker receives the review report and completes the turn")
+@then("the worker applies a review-guided edit and finishes after one review pass")
 def verify_handoff(chat, events):
-    home, _, _ = chat
+    home, workspace, _ = chat
+    assert (workspace / "NOTES.md").read_text().strip() == "# Reviewed Notes"
+    assert not list(home.rglob("review-2.md"))
     report, = home.rglob("review.md")
     assert report.stat().st_size > 0
     assert events[-1]["type"] == "turn.completed"

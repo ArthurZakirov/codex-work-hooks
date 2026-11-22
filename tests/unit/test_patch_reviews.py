@@ -9,6 +9,7 @@ HOOKS = Path(__file__).resolve().parents[2] / "src/parallel-review/hooks"
 def hook(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(HOOKS))
     monkeypatch.setenv("PLUGIN_DATA", str(tmp_path / "state"))
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path))
     import dispatch
     calls = []
 
@@ -46,8 +47,11 @@ def test_reviews_only_accepted_edits_once_and_for_their_own_turn(hook):
     assert send("Stop", stop_hook_active=True) == {}
 
     send("PostToolUse", **patch("NOTES.md", "# Notes", "c"))
-    assert send("Stop", stop_hook_active=True)["decision"] == "block"
-    assert calls[-1] == {"markdown": ["*** Add File: NOTES.md\n+# Notes"]}
+    assert send("Stop", stop_hook_active=True) == {}
+    assert len(calls) == 1
+    send("PostToolUse", turn="next", **patch("new.py", "x=1", "d"))
+    assert send("Stop", turn="next")["decision"] == "block"
+    assert len(calls) == 2
 
 
 def test_mixed_patch_routes_by_destination_including_move(hook):
@@ -86,3 +90,32 @@ def test_model_inputs_are_limited_to_assigned_edits_and_guidance(tmp_path, monke
     for prompt in prompts:
         assert ("PYTHON_CANARY" in prompt) != ("MARKDOWN_CANARY" in prompt)
         assert ("MARKDOWN_CANARY" in prompt) == ("MARKDOWN_GUIDANCE_CANARY" in prompt)
+
+
+@pytest.mark.parametrize(("setting", "expected"), [(0, 0), (2, 2), (3, 3), ("unlimited", 5)])
+def test_configured_budget_counts_batches_with_new_edits(hook, tmp_path, setting, expected):
+    import json
+
+    (tmp_path / "parallel-review.json").write_text(json.dumps({"max_review_passes": setting}))
+    send, calls = hook
+    for index in range(5):
+        send("PostToolUse", **patch("a.py", f"x={index}", str(index)))
+        response = send("Stop", stop_hook_active=index > 0)
+        assert bool(response) == (index < expected)
+        assert send("Stop", stop_hook_active=True) == {}
+    assert len(calls) == expected
+
+
+def test_failed_reviewer_does_not_repeatedly_spend_the_turn_budget(hook, monkeypatch):
+    import dispatch
+
+    send, _ = hook
+    def unavailable(groups):
+        raise RuntimeError("reviewer unavailable")
+
+    monkeypatch.setattr(dispatch, "parallel_review", unavailable)
+    send("PostToolUse", **patch("sample.py", "x=1", "first"))
+    with pytest.raises(RuntimeError, match="reviewer unavailable"):
+        send("Stop")
+    send("PostToolUse", **patch("sample.py", "x=2", "retry"))
+    assert send("Stop") == {}
