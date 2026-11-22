@@ -1,6 +1,6 @@
 {
   "name": "parallel-review",
-  "version": "0.2.0",
-  "description": "Run three parallel Codex reviewers at handoff.",
+  "version": "0.3.0",
+  "description": "Review code and Markdown changed by native patches in this turn.",
   "hooks": "./hooks/hooks.json"
 }

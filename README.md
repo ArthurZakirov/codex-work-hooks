@@ -4,7 +4,7 @@ Install either plugin from one marketplace. Each has its own hook definitions, p
 
 | Install | What it does | What it needs |
 | --- | --- | --- |
-| `./install parallel-review` | Hands completed turns to three parallel reviewers and returns their report to the original worker | Codex login and access to the configured reviewer model |
+| `./install parallel-review` | Routes native code and Markdown edits to matching reviewers and returns their report to the worker | Codex login and access to the configured reviewer model |
 | `./install scope-check` | Checks professional requests against externally authorized requirements before implementation | Jev credential by default |
 | `./install both` | Enables both behaviors | Both sets of prerequisites |
 
@@ -41,16 +41,19 @@ flowchart LR
     A -->|Scope Check disabled| W[Codex works]
     G -->|Allowed| W
     G -->|Blocked| H[Ask for clarification]
-    W -->|Parallel Review enabled| R[Stop]
-    R --> U[Experience]
-    R --> S[Standards]
-    R --> C[Correctness]
-    U & S & C --> F[Worker reads review.md]
+    W --> R{Supported native edits this turn?}
+    R -->|None| D[Finish]
+    R -->|Code| C[Experience, standards and correctness]
+    R -->|Markdown| M[Markdown]
+    C & M --> F[Worker reads review.md]
 ```
 
 **Check work scope.** Personal requests proceed. Professional implementations need verified external requirements. The default requirements provider returns no evidence, so these requests remain blocked until a provider is configured. Explanation and colleague-assistance exceptions remain available. Chat text alone cannot authorize implementation. The demo supplies a fixture provider. The optional Codex classifier is selected with `WORK_HOOKS_CLASSIFIER=codex`. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py) · [Requirements port](src/scope-check/work_hooks/ports/requirements.py)
 
-**Stop.** Parallel Review remembers the user prompt on submission. At a completed turn, including explanation turns, it runs three ephemeral read-only Codex sessions. The worker receives a short instruction containing the report path and can act on confirmed findings. The follow-up stop skips repeat review. This package makes its own decision to review independently of professional approval. [Review prompts](src/parallel-review/prompts) · [Report handoff](src/parallel-review/hooks/dispatch.py)
+**Parallel Review.** A successful native `apply_patch` call records its patch excerpts under the Codex session and turn IDs. At stop, code goes to experience, standards and correctness reviewers. Markdown goes to the Markdown reviewer. A mixed patch triggers both groups. Each reviewer receives only its assigned excerpts in a temporary workspace. The worker receives one report path and applies confirmed fixes. A repeated stop with no new edits returns immediately. [Supported file types](src/parallel-review/hooks/patches.py) · [Review guidance](src/parallel-review/prompts)
+
+**Scope limits.** Discussion, failed patches and pre-existing changes do not trigger reviews. Shell or MCP writes and unrecognized file types are outside this trigger. Use native patches for edits you want reviewed. Reports assess patch evidence; runnable end-to-end UI checks belong in a separate workflow. When installed, the Markdown reviewer also receives the text of `~/.agents/skills/format-markdown/SKILL.md`. To select a different rubric, set `WORK_HOOKS_MARKDOWN_GUIDE` to an absolute Markdown file visible to the hook. Only the Markdown reviewer receives its text.
+
 
 ## Run the evaluations
 

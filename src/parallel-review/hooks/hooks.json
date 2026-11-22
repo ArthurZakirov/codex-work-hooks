@@ -1,15 +1,16 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
+    "PostToolUse": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "python3 \"$PLUGIN_ROOT/hooks/dispatch.py\"",
-            "statusMessage": "Remembering the request for review",
+            "statusMessage": "Recording patch for review",
             "timeout": 300
           }
-        ]
+        ],
+        "matcher": "^apply_patch$"
       }
     ],
     "Stop": [
@@ -18,7 +19,7 @@
           {
             "type": "command",
             "command": "python3 \"$PLUGIN_ROOT/hooks/dispatch.py\"",
-            "statusMessage": "Reviewing experience, standards and correctness",
+            "statusMessage": "Checking for edits to review",
             "timeout": 300
           }
         ]

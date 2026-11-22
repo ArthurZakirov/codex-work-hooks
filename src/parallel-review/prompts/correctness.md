@@ -1,3 +1,3 @@
-# Review behavioral correctness
+# Review correctness of the changed code
 
-Exercise edge cases and check the exit codes. For each confirmed defect, give a minimal command that reproduces it and describe the observed failure.
+Trace the changed behavior with representative inputs and edge cases. For each confirmed defect, cite the changed path and show the input, expected result and result implied by the patch. Distinguish reasoning from an executed test.

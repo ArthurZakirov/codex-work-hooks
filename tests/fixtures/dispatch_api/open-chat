@@ -49,14 +49,15 @@ program = Path(os.environ["PLUGIN_ROOT"]) / "hooks/dispatch.py"
 print("Classifier:", os.getenv("WORK_HOOKS_CLASSIFIER", "jev"), flush=True)
 for index, event in enumerate((
     {"hook_event_name": "UserPromptSubmit", "prompt": "Build a banana game for my own amusement."},
-    {"hook_event_name": "UserPromptSubmit", "prompt": "Review the greeting CLI."},
+    {"hook_event_name": "PostToolUse", "tool_name": "apply_patch", "tool_use_id": "probe",
+     "tool_response": "Exit code: 0", "tool_input": {"command": "*** Begin Patch\n*** Add File: sample.py\n+print(1)\n*** End Patch"}},
     {"hook_event_name": "Stop", "stop_hook_active": False},
 )):
     if index and sys.argv[2] == "--check-submit":
         break
     if index:
         program = Path(os.environ["REVIEW_ROOT"]) / "hooks/dispatch.py"
-    event.update(session_id="synthetic-launch-check", cwd=sys.argv[1])
+    event.update(turn_id="probe", session_id="synthetic-launch-check", cwd=sys.argv[1])
     result = subprocess.run([sys.executable, program], input=json.dumps(event),
                             text=True, capture_output=True, check=True)
     response = json.loads(result.stdout)

@@ -20,7 +20,7 @@ def sample_workspace(tmp_path):
 def send(workspace, event, **fields):
     env = dict(os.environ, PLUGIN_DATA=str(workspace.parent / "review-state"))
     env.pop("JEV_API_KEY", None)
-    payload = dict(hook_event_name=event, session_id="review-test", cwd=str(workspace), **fields)
+    payload = dict(hook_event_name=event, session_id="review-test", turn_id="turn", cwd=str(workspace), **fields)
     result = subprocess.check_output(
         [sys.executable, ROOT / "src/parallel-review/hooks/dispatch.py"],
         input=json.dumps(payload), text=True, env=env, cwd=workspace, timeout=280,
@@ -28,9 +28,10 @@ def send(workspace, event, **fields):
     return json.loads(result)
 
 
-@when("the review plugin receives the submission and stop events", target_fixture="handoff")
+@when("the review plugin receives a mixed patch and a stop event", target_fixture="handoff")
 def review(workspace):
-    send(workspace, "UserPromptSubmit", prompt="Review the existing service.py. Keep feedback brief.")
+    send(workspace, "PostToolUse", tool_name="apply_patch", tool_use_id="one",
+         tool_response="Exit code: 0\n", tool_input={"command": "*** Begin Patch\n*** Add File: sample.py\n+print(1)\n*** Add File: NOTES.md\n+# Notes\n*** End Patch"})
     return send(workspace, "Stop", stop_hook_active=False)
 
 
@@ -39,7 +40,7 @@ def verify_report(workspace, handoff):
     report, = (workspace.parent / "review-state").rglob("review.md")
     assert handoff["decision"] == "block" and str(report) in handoff["reason"]
     sections = report.read_text().split("\n## ")[1:]
-    assert [s.splitlines()[0] for s in sections] == ["Experience", "Standards", "Correctness"]
+    assert [s.splitlines()[0] for s in sections] == ["Experience", "Standards", "Correctness", "Markdown"]
     assert all(s.partition("\n")[2].strip() for s in sections)
 
 

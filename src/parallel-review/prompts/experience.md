@@ -1,11 +1,3 @@
-# Review the first-time CLI experience
+# Review the user experience of the changed code
 
-Use the terminal as a first-time user. Keep the implementation code out of this review.
-
-Exercise three parts of the experience:
-
-- **Discovery.** Try to learn how to invoke the CLI.
-- **First use.** Run the documented example.
-- **Recovery.** Make a mistake and try to recover using the feedback provided.
-
-Report up to five concrete pain points. For each, give the command, the observed output, and the difficulty a user would encounter.
+Identify user-visible behavior in the supplied changes. Report concrete friction in discovery, first use, feedback or recovery when the changed lines demonstrate it. For changes without a user-facing effect, return no findings.
