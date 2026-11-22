@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 import os
-import subprocess
+from work_hooks.adapters.process import run_command
 
 from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput, Ownership
 
@@ -34,13 +34,13 @@ def _run_codex_classifier(prompt: str, schema: Path) -> str:
     command = [
         "codex", "--no-daemon", "exec", "--disable", "hooks", "--ephemeral", "--skip-git-repo-check",
         "--output-schema", str(schema),
-        "-s", "read-only", "-m", "gpt-6-luna", "-c", 'model_reasoning_effort="low"', "-",
+        "-s", "read-only", "-m", os.getenv("WORK_HOOKS_MODEL", "gpt-6-luna"), "-c", 'model_reasoning_effort="low"', "-",
     ]
-    result = subprocess.run(
+    result = run_command(f"Codex classifier ({schema.stem})",
         command,
         input=prompt,
         env={k: v for k, v in os.environ.items() if k != "JEV_API_KEY"},
-        text=True, capture_output=True, timeout=75, check=True,
+        timeout=75,
     )
     return result.stdout
 

@@ -7,6 +7,7 @@ from work_hooks.adapters.classifiers import codex, jev
 from work_hooks.ports.requirements import unavailable
 from work_hooks.adapters.demo_ticket import DemoTicket
 from work_hooks.adapters import sessions
+from work_hooks.adapters.process import HookCommandError
 from work_hooks.adapters.codex.events import dispatch
 
 
@@ -26,6 +27,8 @@ def main() -> None:
                     "additionalContext": "Acknowledge the selected demo ticket and await the next request."}}))
                 return
         response = dispatch(event, classify, requirements)
+    except HookCommandError as error:
+        response = {"decision": "block", "reason": str(error)}
     except Exception as error:
         response = {"decision": "block", "reason": f"Work hook failed ({type(error).__name__}). Check plugin configuration."}
     print(json.dumps(response))

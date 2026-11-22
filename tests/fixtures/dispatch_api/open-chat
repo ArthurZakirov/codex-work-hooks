@@ -23,6 +23,35 @@ import sys
 Path(sys.argv[2]).write_text(f'[projects.{json.dumps(sys.argv[1])}]\ntrust_level = "trusted"\n')
 PY
 codex plugin marketplace add "$checkout" >/dev/null
-codex plugin add work-hooks@work-hooks >/dev/null
+install=$(codex plugin add work-hooks@work-hooks --json)
+if [[ ${1:-} == --check ]]; then
+  PLUGIN_ROOT=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["installedPath"])' <<< "$install")
+  export PLUGIN_ROOT
+  export PLUGIN_DATA="$experiment/check-data"
+  python3 - "$workspace" <<'PYTHON'
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+program = Path(os.environ["PLUGIN_ROOT"]) / "hooks/dispatch.py"
+print("Classifier:", os.getenv("WORK_HOOKS_CLASSIFIER", "jev"), flush=True)
+for event in (
+    {"hook_event_name": "UserPromptSubmit", "prompt": "Build a banana game for my own amusement."},
+    {"hook_event_name": "Stop", "stop_hook_active": False},
+):
+    event.update(session_id="synthetic-launch-check", cwd=sys.argv[1])
+    result = subprocess.run([sys.executable, program], input=json.dumps(event),
+                            text=True, capture_output=True, check=True)
+    response = json.loads(result.stdout)
+    if event["hook_event_name"] == "UserPromptSubmit" and response != {}:
+        sys.exit(response.get("reason", "Synthetic personal request was misclassified."))
+    if event["hook_event_name"] == "Stop" and not list(Path(os.environ["PLUGIN_DATA"]).rglob("review.md")):
+        sys.exit(response.get("reason", "No review report was produced."))
+    print(event["hook_event_name"], "passed")
+PYTHON
+  exit
+fi
 exec codex --no-daemon --dangerously-bypass-hook-trust -s workspace-write \
-  -m gpt-6-luna -c 'model_reasoning_effort="low"'
+  -m "${WORK_HOOKS_MODEL:-gpt-6-luna}" -c 'model_reasoning_effort="low"'

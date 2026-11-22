@@ -2,7 +2,7 @@
 from dataclasses import asdict
 import json
 from pathlib import Path
-import subprocess
+from work_hooks.adapters.process import run_command
 from typing import Any
 
 from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput, Ownership
@@ -56,10 +56,10 @@ def classify(evidence: ClassificationInput) -> Assessment:
 def _ask_jev(state: dict[str, str], questions: dict[str, Any]) -> dict[str, Any]:
     """curl expands the credential internally; it never appears in arguments or logs."""
     payload = {"model": "jev-latest", "state": state, "questions": questions}
-    result = subprocess.run(
-        ["curl", "--disable", "--silent", "--fail", "--max-time", "60",
+    result = run_command("Jev classifier",
+        ["curl", "--disable", "--silent", "--show-error", "--fail", "--max-time", "60",
          "--variable", "%JEV_API_KEY", "--expand-header", "Authorization: Bearer {{JEV_API_KEY}}",
          "--header", "Content-Type: application/json", "--data-binary", "@-",
          "https://api.typesafe.ai/v1/systemone"],
-        input=json.dumps(payload), capture_output=True, text=True, check=True)
+        input=json.dumps(payload), timeout=65)
     return json.loads(result.stdout)["answers"]

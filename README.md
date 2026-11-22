@@ -62,3 +62,7 @@ Install the test tools with `python -m pip install -r tests/requirements.txt`. C
 | [System scenario](tests/system/codex_submission.feature) · local | `WORK_HOOKS_TEST_AUTH_HOME="$HOME/.codex" python -m pytest tests/system` | Real installed hooks block the first turn, then resume the same read-only chat and acknowledge the selected ticket |
 
 The system test needs file-backed Codex login and Jev credentials. It registers only this checkout in a temporary Codex home and links the existing auth file. Default pytest discovery and GitHub Actions run the unit suite only.
+
+### Diagnose a trial launch
+
+Run `tests/fixtures/dispatch_api/open-chat --check` from the checkout in the same shell used for the trial. This installs a fresh isolated copy and exercises the configured classifier and all three reviewers on synthetic input. It prints the failing stage and exit status. If the account lacks the default Luna model, export `WORK_HOOKS_MODEL` with an available Codex model before retrying.
