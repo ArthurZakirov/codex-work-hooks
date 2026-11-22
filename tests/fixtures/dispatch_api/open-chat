@@ -24,11 +24,11 @@ Path(sys.argv[2]).write_text(f'[projects.{json.dumps(sys.argv[1])}]\ntrust_level
 PY
 codex plugin marketplace add "$checkout" >/dev/null
 install=$(codex plugin add work-hooks@work-hooks --json)
-if [[ ${1:-} == --check ]]; then
+if [[ ${1:-} == --check || ${1:-} == --check-submit ]]; then
   PLUGIN_ROOT=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["installedPath"])' <<< "$install")
   export PLUGIN_ROOT
   export PLUGIN_DATA="$experiment/check-data"
-  python3 - "$workspace" <<'PYTHON'
+  python3 - "$workspace" "$1" <<'PYTHON'
 import json
 import os
 from pathlib import Path
@@ -41,6 +41,8 @@ for event in (
     {"hook_event_name": "UserPromptSubmit", "prompt": "Build a banana game for my own amusement."},
     {"hook_event_name": "Stop", "stop_hook_active": False},
 ):
+    if event["hook_event_name"] == "Stop" and sys.argv[2] == "--check-submit":
+        break
     event.update(session_id="synthetic-launch-check", cwd=sys.argv[1])
     result = subprocess.run([sys.executable, program], input=json.dumps(event),
                             text=True, capture_output=True, check=True)

@@ -66,3 +66,5 @@ The system test needs file-backed Codex login and Jev credentials. It registers 
 ### Diagnose a trial launch
 
 Run `tests/fixtures/dispatch_api/open-chat --check` from the checkout in the same shell used for the trial. This installs a fresh isolated copy and exercises the configured classifier and all three reviewers on synthetic input. It prints the failing stage and exit status. If the account lacks the default Luna model, export `WORK_HOOKS_MODEL` with an available Codex model before retrying.
+
+For an error immediately after sending a message, use `open-chat --check-submit` to check just the submission hook.
