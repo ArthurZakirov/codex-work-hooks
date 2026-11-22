@@ -1,18 +1,17 @@
 """TypeSafe System One adapter. Only ClassificationInput is serialized."""
 from dataclasses import asdict
 import json
-import re
+from pathlib import Path
 import subprocess
 from typing import Any
 
-from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput
+from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput, Ownership
 
 KINDS = {
     AssessmentKind.EXPLANATION: "Only asks to understand existing code or behavior. No requested changes.",
     AssessmentKind.ACCEPTANCE_CRITERIA_ONLY: "Supplies acceptance criteria without requesting work.",
     AssessmentKind.EXCEPTION: "Colleague PR review or roughly five minutes of colleague help.",
-    AssessmentKind.PERSONAL: "Private or hobby task.",
-    AssessmentKind.PROFESSIONAL: "Team deliverable or explicitly simulated professional work, including mixed explanation and changes.",
+    AssessmentKind.IMPLEMENTATION: "Team deliverable or explicitly simulated professional work, including mixed explanation and changes.",
     AssessmentKind.UNCLEAR: "Beneficiary or intent remains ambiguous.",
 }
 
@@ -21,32 +20,37 @@ LEVELS = ["Unrelated", "Very weak link", "Separate work item", "Possible link",
           "Demonstrated prerequisite", "Direct requirement", "Exactly the acceptance criterion"]
 
 
+def ownership(request: str, previous: str, pending_request: str) -> Ownership:
+    rubric = Path(__file__).resolve().parents[2] / "resources/prompts/ownership.md"
+    question = {"type": "choice", "instructions": rubric.read_text(),
+                "criteria": {"personal": "Private work", "professional": "Work for others or uncertain"}}
+    answers = _ask_jev({"request": request, "previous": previous, "pending_request": pending_request}, {"ownership": question})
+    return Ownership(answers["ownership"]["choice"])
+
+
 def classify(evidence: ClassificationInput) -> Assessment:
-    spans = [s.strip() for s in re.split(r"\n|(?<=[.!?])\s+", evidence.request) if s.strip()]
     questions: dict[str, Any] = {
         "context_only": {"type": "noul", "instructions": "Is the current message only supplying the work item acceptance criteria for reference, without asking to implement anything now?"},
         "explain_only": {"type": "noul", "instructions": "Look only at state.request. Is the user asking for an explanation of code or behavior without asking anyone to make changes? A question about Pydantic is a typical example."},
         "kind": {"type": "choice", "instructions": "Classify the current request, considering pending work only when relevant.",
                  "criteria": {kind.value: label for kind, label in KINDS.items()}},
-        "alignment": {"type": "score", "instructions": "How necessary is the entire requested change for the supplied work item or explicitly pasted criteria?", "criteria": LEVELS},
+        "prerequisite": {"type": "noul", "instructions": "Does the requester explain a concrete limitation of existing checks and propose a focused way to verify a specific externally authorized criterion? Generic preferences, optional infrastructure and new product requirements do not qualify."},
+        "alignment": {"type": "score", "instructions": "How necessary is the entire requested change for the supplied work item from external evidence only; conflicting or insufficient evidence scores below 8?", "criteria": LEVELS},
         "replacement": {"type": "noul", "instructions": "Does this request replace, rather than clarify, the pending request?"},
     }
-    for i, span in enumerate(spans):
-        questions[f"criterion_{i}"] = {"type": "noul", "instructions":
-            f"Does this passage supply a new acceptance criterion? Exclude implementation requests and questions. Passage: {span}"}
-
     answers = _ask_jev(asdict(evidence), questions)
     kind = AssessmentKind(answers["kind"]["choice"])
     if answers["explain_only"]["noul"] >= 0.5:
         kind = AssessmentKind.EXPLANATION
     score = 1 + round(answers["alignment"]["score"])
+    if evidence.work_item and answers["prerequisite"]["noul"] >= 0.8:
+        score = max(score, 8)
     if not 1 <= score <= len(LEVELS):
         raise ValueError("invalid Jev alignment score")
-    criteria = [span for i, span in enumerate(spans) if answers[f"criterion_{i}"]["noul"] >= 0.5]
-    if criteria and answers["context_only"]["noul"] >= 0.5:
+    if answers["context_only"]["noul"] >= 0.5:
         kind = AssessmentKind.ACCEPTANCE_CRITERIA_ONLY
-    reason = LEVELS[score - 1] if kind is AssessmentKind.PROFESSIONAL else KINDS[kind]
-    return Assessment(kind, score, reason, answers["replacement"]["noul"] >= 0.5, criteria)
+    reason = LEVELS[score - 1] if kind is AssessmentKind.IMPLEMENTATION else KINDS[kind]
+    return Assessment(kind, score, reason, answers["replacement"]["noul"] >= 0.5)
 
 
 def _ask_jev(state: dict[str, str], questions: dict[str, Any]) -> dict[str, Any]:

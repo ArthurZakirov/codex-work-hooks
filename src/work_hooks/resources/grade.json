@@ -5,8 +5,7 @@
       "type": "string",
       "enum": [
         "explanation",
-        "personal",
-        "professional",
+        "implementation",
         "exception",
         "unclear",
         "criteria_only"
@@ -20,20 +19,13 @@
     },
     "reason": {
       "type": "string"
-    },
-    "criteria": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
     }
   },
   "required": [
     "kind",
     "score",
     "replacement",
-    "reason",
-    "criteria"
+    "reason"
   ],
   "additionalProperties": false
 }

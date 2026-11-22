@@ -3,15 +3,22 @@ import json
 import os
 import subprocess
 
-from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput
+from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput, Ownership
 
 RESOURCES = Path(__file__).resolve().parents[2] / "resources"
 SCOPE_RUBRIC = RESOURCES / "prompts/scope.md"
 
 
+def ownership(request: str, previous: str, pending_request: str) -> Ownership:
+    rubric = (RESOURCES / "prompts/ownership.md").read_text()
+    prompt = rubric + json.dumps({"request": request, "previous": previous, "pending_request": pending_request})
+    output = _run_codex_classifier(prompt, RESOURCES / "ownership.json")
+    return Ownership(json.loads(output)["ownership"])
+
+
 def classify(evidence: ClassificationInput) -> Assessment:
     prompt = _build_assessment_prompt(evidence)
-    return _parse_assessment(_run_codex_classifier(prompt))
+    return _parse_assessment(_run_codex_classifier(prompt, RESOURCES / "grade.json"))
 
 
 def _build_assessment_prompt(submission: ClassificationInput) -> str:
@@ -23,11 +30,11 @@ def _build_assessment_prompt(submission: ClassificationInput) -> str:
     return SCOPE_RUBRIC.read_text() + "\nReturn only JSON, without fences.\n" + json.dumps(evidence)
 
 
-def _run_codex_classifier(prompt: str) -> str:
+def _run_codex_classifier(prompt: str, schema: Path) -> str:
     command = [
         "codex", "--no-daemon", "exec", "--disable", "hooks", "--ephemeral", "--skip-git-repo-check",
-        "--output-schema", str(RESOURCES / "grade.json"),
-        "-s", "read-only", "-m", "gpt-6.2-sol", "-c", 'model_reasoning_effort="low"', "-",
+        "--output-schema", str(schema),
+        "-s", "read-only", "-m", "gpt-6-luna", "-c", 'model_reasoning_effort="low"', "-",
     ]
     result = subprocess.run(
         command,
@@ -48,4 +55,4 @@ def _parse_assessment(output: str) -> Assessment:
     if not isinstance(fields["reason"], str) or type(fields["replacement"]) is not bool:
         raise ValueError("invalid assessment")
 
-    return Assessment(kind, score, fields["reason"], fields["replacement"], fields["criteria"])
+    return Assessment(kind, score, fields["reason"], fields["replacement"])

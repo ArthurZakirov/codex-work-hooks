@@ -1,0 +1,28 @@
+#!/bin/bash
+set -eu
+fixture=$(cd "$(dirname "$0")" && pwd)
+checkout=$(cd "$fixture/../../.." && pwd)
+experiment=$(mktemp -d "${TMPDIR:-/tmp}/dispatch-eval-XXXXXX")
+login_home=${WORK_HOOKS_TEST_AUTH_HOME:-${CODEX_HOME:-$HOME/.codex}}
+export CODEX_HOME="$experiment/codex" HOME="$experiment/home"
+export WORK_HOOKS_DEMO_TICKET="$fixture/OPS-17.md"
+
+mkdir -p "$CODEX_HOME" "$HOME" "$experiment/workspace"
+cd "$experiment/workspace"
+workspace=$(pwd -P)
+cp "$fixture/service.py" .
+git init -q
+if [[ -f "$login_home/auth.json" ]]; then
+  ln -s "$login_home/auth.json" "$CODEX_HOME/auth.json"
+fi
+python3 - "$workspace" "$CODEX_HOME/config.toml" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+Path(sys.argv[2]).write_text(f'[projects.{json.dumps(sys.argv[1])}]\ntrust_level = "trusted"\n')
+PY
+codex plugin marketplace add "$checkout" >/dev/null
+codex plugin add work-hooks@work-hooks >/dev/null
+exec codex --no-daemon --dangerously-bypass-hook-trust -s workspace-write \
+  -m gpt-6-luna -c 'model_reasoning_effort="low"'

@@ -11,7 +11,7 @@ def parallel_review(workspace: Path, request: str) -> str:
     def review(role: str) -> str:
         instructions = (PROMPTS / f"{role}.md").read_text()
         result = subprocess.run(
-            ["codex", "--no-daemon", "exec", "--disable", "hooks", "--ephemeral",
+            ["codex", "--no-daemon", "exec", "-m", "gpt-6-luna", "-c", 'model_reasoning_effort="low"', "--disable", "hooks", "--ephemeral",
              "--skip-git-repo-check", "-s", "read-only", "-C", str(workspace), "-"],
             input=f"Original work request:\n{request}\n\nReview instructions:\n{instructions}",
             text=True, capture_output=True, check=True, timeout=240,

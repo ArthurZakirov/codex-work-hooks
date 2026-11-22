@@ -16,7 +16,11 @@ def session_directory(session_id: str) -> Path:
 
 def load(directory: Path) -> Session:
     path = directory / "session.json"
-    return Session(**json.loads(path.read_text())) if path.exists() else Session()
+    if not path.exists():
+        return Session()
+    fields = json.loads(path.read_text())
+    fields.pop("criteria", None)  # Older versions saved unverified chat text here.
+    return Session(**fields)
 
 
 def save(directory: Path, session: Session) -> None:

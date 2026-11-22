@@ -3,10 +3,14 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class AssessmentKind(str, Enum):
-    EXPLANATION = "explanation"
+class Ownership(str, Enum):
     PERSONAL = "personal"
     PROFESSIONAL = "professional"
+
+
+class AssessmentKind(str, Enum):
+    EXPLANATION = "explanation"
+    IMPLEMENTATION = "implementation"
     EXCEPTION = "exception"
     UNCLEAR = "unclear"
     ACCEPTANCE_CRITERIA_ONLY = "criteria_only"
@@ -18,7 +22,6 @@ class Assessment:
     score: int
     reason: str
     replacement: bool
-    criteria: list[str]
 
 
 @dataclass(frozen=True)
@@ -30,7 +33,7 @@ class ClassificationInput:
 
 @dataclass(frozen=True)
 class Session:
-    criteria: str = ""
+    ownership: str = ""
     pending: str = ""
     approved: str = ""
 

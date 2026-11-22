@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "ownership": {
+      "type": "string",
+      "enum": [
+        "professional",
+        "personal"
+      ]
+    }
+  },
+  "required": [
+    "ownership"
+  ],
+  "additionalProperties": false
+}
