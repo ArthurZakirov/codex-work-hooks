@@ -3,7 +3,7 @@ import json
 import os
 import subprocess
 
-from work_hooks.core.assessment import Assessment, AssessmentKind, ClassificationInput
+from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput
 
 RESOURCES = Path(__file__).resolve().parents[2] / "resources"
 SCOPE_RUBRIC = RESOURCES / "prompts/scope.md"

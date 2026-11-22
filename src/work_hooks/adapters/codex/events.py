@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
-from work_hooks.core.submission import evaluate
-from work_hooks.ports.classifiers import ScopeClassifier
+from work_hooks.core.evaluate_submission import evaluate_submission
+from work_hooks.ports.scope_classifier import ScopeClassifier
 from work_hooks.adapters import sessions
 from work_hooks.adapters.codex.reviews import parallel_review
 
@@ -11,7 +11,7 @@ def dispatch(event: dict[str, Any], classify: ScopeClassifier) -> dict[str, Any]
     ready = directory / "review-ready"
     session = sessions.load(directory)
     if event["hook_event_name"] == "UserPromptSubmit":
-        decision = evaluate(event["prompt"], session, classify)
+        decision = evaluate_submission(event["prompt"], session, classify)
         sessions.save(directory, decision.session)
         if decision.review:
             ready.touch()

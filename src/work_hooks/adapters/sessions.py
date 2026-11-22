@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from work_hooks.core.submission import Session
+from work_hooks.core.models import Session
 
 
 def session_directory(session_id: str) -> Path:

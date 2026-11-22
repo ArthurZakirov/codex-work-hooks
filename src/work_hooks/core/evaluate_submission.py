@@ -1,25 +1,10 @@
 """Assess a submission without depending on files, Codex events or a model provider."""
-from dataclasses import dataclass, replace
-from work_hooks.core.assessment import AssessmentKind, ClassificationInput
-from work_hooks.ports.classifiers import ScopeClassifier
+from dataclasses import replace
+from work_hooks.core.models import AssessmentKind, ClassificationInput, Decision, Session
+from work_hooks.ports.scope_classifier import ScopeClassifier
 
 
-@dataclass(frozen=True)
-class Session:
-    criteria: str = ""
-    pending: str = ""
-    approved: str = ""
-
-
-@dataclass(frozen=True)
-class Decision:
-    session: Session
-    message: str
-    blocked: bool = False
-    review: bool = False
-
-
-def evaluate(request: str, session: Session, classify: ScopeClassifier) -> Decision:
+def evaluate_submission(request: str, session: Session, classify: ScopeClassifier) -> Decision:
     grade = classify(ClassificationInput(request, session.pending, session.criteria))
     kind = grade.kind
     if kind is AssessmentKind.EXPLANATION:

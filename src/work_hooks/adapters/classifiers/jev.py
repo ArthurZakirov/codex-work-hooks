@@ -5,7 +5,7 @@ import re
 import subprocess
 from typing import Any
 
-from work_hooks.core.assessment import Assessment, AssessmentKind, ClassificationInput
+from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput
 
 KINDS = {
     AssessmentKind.EXPLANATION: "Only asks to understand existing code or behavior. No requested changes.",

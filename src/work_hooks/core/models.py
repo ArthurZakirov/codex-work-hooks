@@ -26,3 +26,18 @@ class ClassificationInput:
     request: str
     pending_request: str
     work_item: str
+
+
+@dataclass(frozen=True)
+class Session:
+    criteria: str = ""
+    pending: str = ""
+    approved: str = ""
+
+
+@dataclass(frozen=True)
+class Decision:
+    session: Session
+    message: str
+    blocked: bool = False
+    review: bool = False
