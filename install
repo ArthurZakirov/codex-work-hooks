@@ -13,8 +13,22 @@ def main() -> None:
     checkout = Path(__file__).resolve().parent
     if sys.version_info < (3, 10):
         sys.exit("Use Python 3.10 or newer to run ./install.")
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("plugin", choices=("scope-check", "parallel-review", "both"), nargs="?", default="both")
+    parser = argparse.ArgumentParser(
+        description="Register this checkout as a Codex marketplace and install the selected plugins.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Requirements:
+  parallel-review   Signed-in Codex CLI with access to the reviewer model.
+  scope-check       By default, export JEV_API_KEY or create the macOS login
+                    Keychain password item codex-work-hooks.jev.
+
+Upgrading from the combined work-hooks plugin?
+  Run codex plugin remove work-hooks@work-hooks before installing its replacement.
+
+After installation, open a new Codex session and review the hooks in /hooks.
+See README.md for credential setup and daemon troubleshooting.""",
+    )
+    parser.add_argument("plugin", choices=("scope-check", "parallel-review", "both"), nargs="?", default="both",
+                        help="plugin selection (default: both)")
     choice = parser.parse_args().plugin
     names = ("scope-check", "parallel-review") if choice == "both" else (choice,)
 
