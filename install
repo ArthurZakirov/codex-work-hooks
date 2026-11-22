@@ -17,7 +17,7 @@ def main() -> None:
     if not os.environ.get("JEV_API_KEY"):
         sys.exit("Export JEV_API_KEY in the shell that launches Codex, then rerun ./install.")
 
-    subprocess.run(["codex", "plugin", "marketplace", "add", str(checkout)], check=True)
+    _register_marketplace(checkout)
     result = subprocess.check_output(["codex", "plugin", "add", "work-hooks@work-hooks", "--json"])
     installed = Path(json.loads(result)["installedPath"])
     for directory in (".codex-plugin", "hooks", "src"):
@@ -40,5 +40,23 @@ def main() -> None:
     print(f"Installed files match and Jev approved a test submission. Plugin root: {installed}")
 
 
+def _register_marketplace(checkout: Path) -> None:
+    add = ["codex", "plugin", "marketplace", "add", str(checkout)]
+    result = subprocess.run(add, stderr=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        return
+
+    conflict = "marketplace 'work-hooks' is already added from a different source"
+    if conflict not in result.stderr:
+        sys.exit(result.stderr.strip() or "Codex could not register the work-hooks marketplace.")
+
+    print(f"Updating the work-hooks marketplace source to {checkout}.", flush=True)
+    subprocess.run(["codex", "plugin", "marketplace", "remove", "work-hooks"], check=True)
+    subprocess.run(add, check=True)
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except subprocess.CalledProcessError as error:
+        sys.exit(f"{error.cmd[0]} exited with status {error.returncode}.")
