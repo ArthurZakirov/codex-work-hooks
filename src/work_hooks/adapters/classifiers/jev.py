@@ -5,6 +5,8 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import build_opener, HTTPRedirectHandler, Request
 import os
+import ssl
+import socket
 from work_hooks.adapters.process import HookCommandError
 from typing import Any
 
@@ -79,4 +81,11 @@ def _ask_jev(state: dict[str, str], questions: dict[str, Any]) -> dict[str, Any]
                 429: "Check rate limits and quota."}.get(error.code, "Check TypeSafe availability.")
         raise HookCommandError(f"Jev classifier: TypeSafe returned HTTP {error.code}. {hint}") from None
     except (URLError, OSError) as error:
-        raise HookCommandError(f"Jev classifier: HTTPS connection to api.typesafe.ai failed ({type(error).__name__}).") from None
+        cause = error.reason if isinstance(error, URLError) else error
+        if isinstance(cause, ssl.SSLCertVerificationError):
+            hint = "TLS certificate verification failed. Check the CA bundle used by the hook's Python."
+        elif isinstance(cause, socket.gaierror):
+            hint = "DNS lookup failed. Check DNS and proxy access from the Codex process."
+        else:
+            hint = f"Transport error {type(cause).__name__} (errno {getattr(cause, 'errno', None)})."
+        raise HookCommandError(f"Jev classifier: HTTPS connection to api.typesafe.ai failed. {hint}") from None

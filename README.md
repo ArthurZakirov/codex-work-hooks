@@ -33,14 +33,13 @@ The default provider returns no evidence. Until an authenticated adapter is conf
 
 ## Install
 
-With Python 3.10+ and a signed-in Codex CLI that supports plugin hooks, run these commands from the checkout:
+With Python 3.10+, an exported `JEV_API_KEY` and a signed-in Codex CLI that supports plugin hooks, install or refresh the plugin from this checkout:
 
 ```sh
-codex plugin marketplace add "$PWD"
-codex plugin add work-hooks@work-hooks
+./install
 ```
 
-Start Codex normally and review both hook definitions in `/hooks`.
+The installer verifies the cached hook files and sends a synthetic personal prompt to Jev from the launching shell. Start a fresh `codex` session and trust the updated Work Hooks entries when prompted. In `/hooks`, the source for “Checking work scope” should match the plugin root printed by the installer.
 
 **Classifier selection.** Jev is the default. Supply `JEV_API_KEY` before starting Codex, or select the Codex classifier with `WORK_HOOKS_CLASSIFIER=codex`. Jev uses Python’s HTTPS client and sends the request, pending request, and acceptance criteria to TypeSafe.
 
