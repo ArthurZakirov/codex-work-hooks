@@ -13,10 +13,10 @@ from typing import Any
 from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInput, Ownership
 
 KINDS = {
-    AssessmentKind.EXPLANATION: "Only asks to understand existing code or behavior. No requested changes.",
+    AssessmentKind.EXPLANATION: "Only asks to understand a draft, discrepancy, decision, code or behavior. No requested changes.",
     AssessmentKind.ACCEPTANCE_CRITERIA_ONLY: "Supplies acceptance criteria without requesting work.",
-    AssessmentKind.EXCEPTION: "Colleague PR review or roughly five minutes of colleague help.",
-    AssessmentKind.IMPLEMENTATION: "Team deliverable or explicitly simulated professional work, including mixed explanation and changes.",
+    AssessmentKind.EXCEPTION: "Delivery workflow: retrieve/select a ticket, gather context, draft or revise a PR/team announcement, review a colleague PR, or briefly assist a colleague.",
+    AssessmentKind.IMPLEMENTATION: "Product or engineering changes including new features, refactors, tests, infrastructure, and mixed workflow plus implementation.",
     AssessmentKind.UNCLEAR: "Beneficiary or intent remains ambiguous.",
 }
 
@@ -36,7 +36,7 @@ def ownership(request: str, previous: str, pending_request: str) -> Ownership:
 def classify(evidence: ClassificationInput) -> Assessment:
     questions: dict[str, Any] = {
         "context_only": {"type": "noul", "instructions": "Is the current message only supplying the work item acceptance criteria for reference, without asking to implement anything now?"},
-        "explain_only": {"type": "noul", "instructions": "Look only at state.request. Is the user asking for an explanation of code or behavior without asking anyone to make changes? A question about Pydantic is a typical example."},
+        "explain_only": {"type": "noul", "instructions": "Look only at state.request. Is the user asking for an explanation of a draft, inconsistency, code or behavior without asking anyone to make changes? A question about Pydantic is a typical example."},
         "kind": {"type": "choice", "instructions": "Classify the current request, considering pending work only when relevant.",
                  "criteria": {kind.value: label for kind, label in KINDS.items()}},
         "prerequisite": {"type": "noul", "instructions": "Does the requester explain a concrete limitation of existing checks and propose a focused way to verify a specific externally authorized criterion? Generic preferences, optional infrastructure and new product requirements do not qualify."},

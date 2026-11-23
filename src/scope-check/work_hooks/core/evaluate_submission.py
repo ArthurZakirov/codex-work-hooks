@@ -19,21 +19,21 @@ def evaluate_submission(request: str, session: Session, classify: ScopeClassifie
     if kind is AssessmentKind.EXPLANATION:
         return Decision(session, "Explain using the conversation context. Do not implement changes.")
     if kind is AssessmentKind.ACCEPTANCE_CRITERIA_ONLY:
-        return Decision(session, "Chat text cannot authorize scope. Which external work item or colleague message establishes this requirement?", blocked=True)
+        return Decision(session, "Use the supplied information as conversation context. Only verified external requirements authorize implementation.")
+    if kind is AssessmentKind.EXCEPTION:
+        return Decision(session, "Carry out the current workflow request. Leave pending implementation requests on hold.")
+    if kind is AssessmentKind.UNCLEAR:
+        return Decision(session, "Answer or clarify the current request using the conversation context. Ask before making implementation changes.")
 
     prior = "" if grade.replacement else session.pending
     full_request = "\n".join(filter(None, [prior, request]))
-    blocked = kind is AssessmentKind.UNCLEAR
-    message = grade.reason
-    if kind is AssessmentKind.IMPLEMENTATION:
-        blocked = not criteria or grade.score < 8
-        message = (f"Scope {grade.score}/10 · {grade.reason}" if criteria
-                   else "No verified requirements are available for this work item. Identify the originating ticket or colleague message.")
+    blocked = not criteria or grade.score < 8
+    message = (f"Scope {grade.score}/10 · {grade.reason}" if criteria
+               else "No verified requirements are available for this work item. Identify the originating ticket or colleague message.")
 
     if blocked:
         return Decision(replace(session, pending=full_request), message, blocked=True)
     if prior:
         message += "\nPreviously blocked request now approved:\n" + prior
-    if kind is AssessmentKind.IMPLEMENTATION:
-        message += "\nActive work item:\n" + criteria
+    message += "\nActive work item:\n" + criteria
     return Decision(replace(session, pending="", approved=full_request), message)

@@ -37,3 +37,13 @@ class RequirementBoundaryTests(unittest.TestCase):
         for record in (ticket, clarification):
             self.assertIn(record.source_ref, evidence)
             self.assertIn(record.text, evidence)
+
+    def test_conversation_can_continue_without_authorizing_pending_implementation(self):
+        session = Session(ownership="professional", pending="Refactor the service")
+        for kind in (AssessmentKind.EXPLANATION, AssessmentKind.EXCEPTION,
+                     AssessmentKind.ACCEPTANCE_CRITERIA_ONLY, AssessmentKind.UNCLEAR):
+            with self.subTest(kind=kind):
+                self.classifier.classify.return_value = Assessment(kind, 1, "", False)
+                result = evaluate_submission("Follow-up", session, self.classifier, self.source, "session")
+                self.assertFalse(result.blocked)
+                self.assertEqual(result.session, session)

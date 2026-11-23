@@ -86,3 +86,29 @@ def missing_requirements(chat):
     assert decision.blocked and not decision.session.approved
     assert "No verified requirements" in decision.message
     assert "ticket or colleague message" in decision.message
+
+
+@when("the user discusses and revises a PR announcement and requests the originating ticket")
+def continue_workflow(chat):
+    chat["original_pending"] = chat["session"].pending
+    chat["workflow"] = []
+    for prompt in (
+        "What about Delta? You omitted it from the shared fields sentence but included it in the general template sentence. Why?",
+        "Revise the Slack PR review announcement in draft.md to make that distinction clear.",
+        "Fetch Jira OPS-17 to set up the work item.",
+    ):
+        submit(chat, prompt)
+        chat["workflow"].append(chat["decision"])
+
+
+@then("each workflow request proceeds and the implementation remains pending")
+def workflow_allowed(chat):
+    for decision in chat["workflow"]:
+        assert not decision.blocked, decision
+        assert decision.session.pending == chat["original_pending"]
+        assert not decision.session.approved
+
+
+@when("the user combines ticket lookup with an unrelated refactor")
+def mixed_request(chat):
+    submit(chat, "Fetch OPS-17 and refactor the entire dispatch service into a new architecture.")

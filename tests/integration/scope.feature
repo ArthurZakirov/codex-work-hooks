@@ -27,3 +27,12 @@ Feature: Scope decisions for professional and personal requests
       | requirements_context                                         |
       | a ticket with verified acceptance criteria is selected       |
       | the team has supplied no ticket or other verified requirements |
+
+  Scenario: Continue delivery workflow while an implementation request is pending
+    Given the team has supplied no ticket or other verified requirements
+    When the user asks to implement a feature for the team
+    Then implementation is blocked and the requester is asked for the originating ticket or colleague message
+    When the user discusses and revises a PR announcement and requests the originating ticket
+    Then each workflow request proceeds and the implementation remains pending
+    When the user combines ticket lookup with an unrelated refactor
+    Then implementation is blocked
