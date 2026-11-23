@@ -2,6 +2,9 @@
 set -eu
 fixture=$(cd "$(dirname "$0")" && pwd)
 source "$fixture/prepare-mac.sh"
+case ${WORK_HOOKS_MODEL:-} in
+  *[Ll][Uu][Nn][Aa]*) echo "WORK_HOOKS_MODEL cannot select a Luna model." >&2; exit 2 ;;
+esac
 prepare_tools
 export WORK_HOOKS_CLASSIFIER="${WORK_HOOKS_CLASSIFIER:-codex}"
 if [[ "$WORK_HOOKS_CLASSIFIER" == jev ]]; then
@@ -47,4 +50,4 @@ case ${1:-} in
 esac
 unset PLUGIN_ROOT PLUGIN_DATA
 exec codex --no-daemon --dangerously-bypass-hook-trust -s workspace-write \
-  -m "${WORK_HOOKS_MODEL:-gpt-6-luna}" -c 'model_reasoning_effort="low"'
+  -m "${WORK_HOOKS_MODEL:-gpt-6.1-terra}" -c 'model_reasoning_effort="low"'

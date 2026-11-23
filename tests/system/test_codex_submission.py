@@ -37,7 +37,7 @@ def installed_chat(tmp_path):
     run("plugin", "marketplace", "add", str(ROOT)).check_returncode()
     run("plugin", "add", "scope-check@work-hooks").check_returncode()
     flags = ["--disable", "apps", "exec", "--json", "--trust", "--dangerously-bypass-hook-trust",
-             "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6-luna",
+             "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6.1-terra",
              "-c", 'model_reasoning_effort="low"']
 
     return SimpleNamespace(run=run, flags=flags, home=home, ticket=ticket, criterion=criterion, service=service, fixture=fixture)

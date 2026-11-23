@@ -34,13 +34,17 @@ def _build_assessment_prompt(submission: ClassificationInput) -> str:
 
 
 def _run_codex_classifier(prompt: str, schema: Path) -> str:
+    model = os.getenv("WORK_HOOKS_MODEL", "gpt-6.1-terra")
+    if "luna" in model.casefold():
+        raise ValueError("WORK_HOOKS_MODEL cannot select a Luna model.")
+
     with TemporaryDirectory() as workspace:
         command = [
             "codex", "--no-daemon", "exec", "-C", workspace, "--disable", "hooks", "--ephemeral", "--skip-git-repo-check",
             "--ignore-user-config", "--ignore-rules", "--disable", "plugins", "--disable", "apps",
             "--disable", "shell_tool", "--disable", "unified_exec", "-c", "project_doc_max_bytes=0",
             "--output-schema", str(schema),
-            "-s", "read-only", "-m", os.getenv("WORK_HOOKS_MODEL", "gpt-6-luna"), "-c", 'model_reasoning_effort="low"', "-",
+            "-s", "read-only", "-m", model, "-c", 'model_reasoning_effort="low"', "-",
         ]
         result = run_command(f"Codex classifier ({schema.stem})",
             command,
