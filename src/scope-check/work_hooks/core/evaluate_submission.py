@@ -19,7 +19,7 @@ def evaluate_submission(request: str, session: Session, classify: ScopeClassifie
     if kind is AssessmentKind.EXPLANATION:
         return Decision(session, "Explain using the conversation context. Do not implement changes.")
     if kind is AssessmentKind.ACCEPTANCE_CRITERIA_ONLY:
-        return Decision(session, "Use the supplied information as conversation context. Only verified external requirements authorize implementation.")
+        return Decision(session, "", capture_criteria=True)
     if kind is AssessmentKind.EXCEPTION:
         return Decision(session, "Carry out the current workflow request. Leave pending implementation requests on hold.")
     if kind is AssessmentKind.UNCLEAR:

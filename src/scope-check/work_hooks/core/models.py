@@ -43,3 +43,4 @@ class Decision:
     session: Session
     message: str
     blocked: bool = False
+    capture_criteria: bool = False

@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/dispatch.py\"",
+            "statusMessage": "Saving work-item context",
+            "timeout": 300
+          }
+        ]
+      }
     ]
   }
 }

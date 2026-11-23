@@ -50,7 +50,9 @@ flowchart LR
     C & M --> F[Worker reads review.md]
 ```
 
-**Check work scope.** Personal requests proceed. Professional implementations need verified external requirements. The default requirements provider returns no evidence, so these requests remain blocked until a provider is configured. Questions about existing work, ticket lookup, and drafting or revising team communications can proceed without acceptance criteria. A request that also asks for a feature or refactor still goes through scope grading. Chat text alone cannot authorize implementation. The demo supplies a fixture provider. The default Codex classifier uses `gpt-6-luna` with low reasoning effort. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py) · [Requirements port](src/scope-check/work_hooks/ports/requirements.py)
+**Set up a work item in chat.** Paste the criteria with their source, or ask Codex to read a ticket, message or file through a tool it already has. Codex replies with the work item, source and criteria. Scope Check stores this receipt for the current chat. An attributed paste relies on the user's attribution. A lookup relies on the worker reading the source.
+
+**Use the criteria.** Later professional implementation requests are compared with the saved criteria. A new source for the same item adds a clarification. Selecting another item replaces the active evidence. Discussion, team communications and personal requests can proceed independently. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py)
 
 **Parallel Review.** A successful native `apply_patch` call records its patch excerpts under the Codex session and turn IDs. At stop, code goes to experience, standards and correctness reviewers. Markdown goes to the Markdown reviewer. A mixed patch triggers both groups. Each reviewer receives only its assigned excerpts in a temporary workspace. The worker receives one report path and applies confirmed fixes. A repeated stop with no new edits returns immediately. [Supported file types](src/parallel-review/hooks/patches.py) · [Review guidance](src/parallel-review/prompts)
 

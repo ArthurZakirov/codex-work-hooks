@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from pytest_bdd import given, when, then, scenarios
 from work_hooks.adapters.classifiers import codex, jev
-from work_hooks.adapters.demo_ticket import DemoTicket
+from work_hooks.adapters.criteria import SessionCriteria
 from work_hooks.core.models import Session
 from work_hooks.core.evaluate_submission import evaluate_submission
 
@@ -12,13 +12,13 @@ TICKET = Path(__file__).resolve().parents[1] / "fixtures/dispatch_api/OPS-17.md"
 
 @given("the team has supplied no ticket or other verified requirements", target_fixture="chat")
 def fresh_chat(tmp_path):
-    return {"session": Session(ownership="professional"), "source": DemoTicket(TICKET, tmp_path)}
+    return {"session": Session(ownership="professional"), "source": SessionCriteria(tmp_path)}
 
 
 @given("a ticket with verified acceptance criteria is selected", target_fixture="chat")
 def chat_with_ticket(tmp_path):
     chat = fresh_chat(tmp_path)
-    if not chat["source"].select("Here is our Jira ticket: " + TICKET.read_text()):
+    if not chat["source"].record("Work item: OPS-17\nSource: team brief OPS-17\nAcceptance criteria:\n" + TICKET.read_text()):
         raise RuntimeError("Could not prepare the selected fixture ticket")
     return chat
 

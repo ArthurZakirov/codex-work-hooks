@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from uuid import uuid4
 from types import SimpleNamespace
 
 from pytest_bdd import given, when, then, scenarios
@@ -23,9 +24,10 @@ def installed_chat(tmp_path):
     fixture = ROOT / "tests/fixtures/dispatch_api/service.py"
     service = workspace / "service.py"
     service.write_bytes(fixture.read_bytes())
-    ticket = ROOT / "tests/fixtures/dispatch_api/OPS-17.md"
-    env = dict(os.environ, CODEX_HOME=str(home), HOME=str(tmp_path),
-               WORK_HOOKS_DEMO_TICKET=str(ticket))
+    ticket = "TEAM-" + uuid4().hex[:8]
+    criterion = "DELETE /manifests/{id} must return HTTP 204 and audit label " + uuid4().hex
+    env = dict(os.environ, CODEX_HOME=str(home), HOME=str(tmp_path))
+    env.pop("WORK_HOOKS_DEMO_TICKET", None)
     env.pop("WORK_HOOKS_CLASSIFIER", None)
 
     def run(*args: str) -> subprocess.CompletedProcess:
@@ -34,11 +36,11 @@ def installed_chat(tmp_path):
 
     run("plugin", "marketplace", "add", str(ROOT)).check_returncode()
     run("plugin", "add", "scope-check@work-hooks").check_returncode()
-    flags = ["exec", "--json", "--trust", "--dangerously-bypass-hook-trust",
+    flags = ["--disable", "apps", "exec", "--json", "--trust", "--dangerously-bypass-hook-trust",
              "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6-luna",
              "-c", 'model_reasoning_effort="low"']
 
-    return SimpleNamespace(run=run, flags=flags, home=home, ticket=ticket, service=service, fixture=fixture)
+    return SimpleNamespace(run=run, flags=flags, home=home, ticket=ticket, criterion=criterion, service=service, fixture=fixture)
 
 
 @when("the user requests a feature for the team", target_fixture="first_turn")
@@ -63,7 +65,7 @@ def submit_ticket(chat, first_turn):
     _, events = first_turn
     thread = next(event["thread_id"] for event in events if event["type"] == "thread.started")
 
-    accepted = chat.run(*chat.flags, "resume", thread, f"Here is our Jira ticket: {chat.ticket}. Acknowledge with TICKET_RECEIVED only.")
+    accepted = chat.run(*chat.flags, "resume", thread, f"Save our work item {chat.ticket}. Pasted from the approved team brief {chat.ticket}: Acceptance criteria: {chat.criterion}")
     accepted.check_returncode()
     return [json.loads(line) for line in accepted.stdout.splitlines()]
 
@@ -73,8 +75,23 @@ def check_acknowledgment(chat, ticket_turn):
     events = ticket_turn
     messages = [e["item"]["text"] for e in events if e.get("type") == "item.completed"
                 and e.get("item", {}).get("type") == "agent_message"]
-    assert any("TICKET_RECEIVED" in text for text in messages), messages
-    assert list(chat.home.rglob("demo-ticket")), "Expected the real hook to select the ticket"
+    assert any(chat.criterion in text for text in messages)
+    receipt, = chat.home.rglob("work-item.json")
+    assert chat.criterion in json.loads(receipt.read_text())["records"][0]["text"]
+
+
+@when("the user asks for the approved change on a later turn")
+def submit_implementation(chat, first_turn):
+    _, events = first_turn
+    thread = next(event["thread_id"] for event in events if event["type"] == "thread.started")
+    chat.request = "Implement the exact deletion behavior specified in our selected team brief."
+    chat.run(*chat.flags, "resume", thread, chat.request).check_returncode()
+
+
+@then("the scope gate approves the implementation request")
+def check_approval(chat):
+    state, = chat.home.rglob("session.json")
+    assert chat.request in json.loads(state.read_text())["approved"]
 
 
 @then("the application code remains unchanged")

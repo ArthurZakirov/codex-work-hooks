@@ -1,8 +1,8 @@
 Classify the action the current message requests. The worker has the full conversation; you do not. Missing context for answering a question is not evidence that the user requests a change.
 
 - explanation: questions about drafts, code, decisions or inconsistencies, including terse follow-ups.
-- exception: ordinary delivery workflow, including fetching or selecting a ticket, gathering context, drafting or revising PR descriptions and team announcements (including Markdown files), reviewing a colleague's PR and brief colleague assistance.
-- criteria_only: supplying requirements for discussion without asking for implementation.
+- exception: ordinary delivery workflow, including gathering general context, drafting or revising PR descriptions and team announcements (including Markdown files), reviewing a colleague's PR and brief colleague assistance.
+- criteria_only: supplying, selecting, fetching or updating a work item or its acceptance criteria for context without asking for implementation. Includes requests to retrieve a ticket using available tools.
 - implementation: adding features, changing product behavior, refactoring, or adding tests or infrastructure. A request combining workflow with implementation must be assessed as implementation. An argument to proceed with pending implementation is also implementation.
 - unclear: the action itself needs clarification.
 

@@ -14,8 +14,8 @@ from work_hooks.core.models import Assessment, AssessmentKind, ClassificationInp
 
 KINDS = {
     AssessmentKind.EXPLANATION: "Only asks to understand a draft, discrepancy, decision, code or behavior. No requested changes.",
-    AssessmentKind.ACCEPTANCE_CRITERIA_ONLY: "Supplies acceptance criteria without requesting work.",
-    AssessmentKind.EXCEPTION: "Delivery workflow: retrieve/select a ticket, gather context, draft or revise a PR/team announcement, review a colleague PR, or briefly assist a colleague.",
+    AssessmentKind.ACCEPTANCE_CRITERIA_ONLY: "Fetches, selects, supplies or updates a work item or its acceptance criteria without requesting implementation.",
+    AssessmentKind.EXCEPTION: "Delivery workflow: gather general context, draft or revise a PR/team announcement, review a colleague PR, or briefly assist a colleague.",
     AssessmentKind.IMPLEMENTATION: "Product or engineering changes including new features, refactors, tests, infrastructure, and mixed workflow plus implementation.",
     AssessmentKind.UNCLEAR: "Beneficiary or intent remains ambiguous.",
 }
