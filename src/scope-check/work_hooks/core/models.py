@@ -29,6 +29,7 @@ class ClassificationInput:
     request: str
     pending_request: str
     work_item: str
+    previous_assistant_reply: str = ""
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class Session:
     ownership: str = ""
     pending: str = ""
     approved: str = ""
+    previous_assistant_reply: str = ""
 
 
 @dataclass(frozen=True)

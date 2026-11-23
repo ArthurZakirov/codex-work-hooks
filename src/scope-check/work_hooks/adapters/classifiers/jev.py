@@ -25,11 +25,12 @@ LEVELS = ["Unrelated", "Very weak link", "Separate work item", "Possible link",
           "Demonstrated prerequisite", "Direct requirement", "Exactly the acceptance criterion"]
 
 
-def ownership(request: str, previous: str, pending_request: str) -> Ownership:
+def ownership(request: str, previous: str, pending_request: str, previous_assistant_reply: str) -> Ownership:
     rubric = Path(__file__).resolve().parents[2] / "resources/prompts/ownership.md"
     question = {"type": "choice", "instructions": rubric.read_text(),
                 "criteria": {"personal": "Private work", "professional": "Work for others or uncertain"}}
-    answers = _ask_jev({"request": request, "previous": previous, "pending_request": pending_request}, {"ownership": question})
+    answers = _ask_jev({"request": request, "previous": previous, "pending_request": pending_request,
+                         "previous_assistant_reply": previous_assistant_reply}, {"ownership": question})
     return Ownership(answers["ownership"]["choice"])
 
 
@@ -37,10 +38,10 @@ def classify(evidence: ClassificationInput) -> Assessment:
     questions: dict[str, Any] = {
         "context_only": {"type": "noul", "instructions": "Is the current message only supplying the work item acceptance criteria for reference, without asking to implement anything now?"},
         "explain_only": {"type": "noul", "instructions": "Look only at state.request. Is the user asking for an explanation of a draft, inconsistency, code or behavior without asking anyone to make changes? A question about Pydantic is a typical example."},
-        "kind": {"type": "choice", "instructions": "Classify the current request, considering pending work only when relevant.",
+        "kind": {"type": "choice", "instructions": "Resolve assent such as go to the proposal in previous_assistant_reply and classify that action. Use pending work only when relevant.",
                  "criteria": {kind.value: label for kind, label in KINDS.items()}},
         "prerequisite": {"type": "noul", "instructions": "Does the requester explain a concrete limitation of existing checks and propose a focused way to verify a specific externally authorized criterion? Generic preferences, optional infrastructure and new product requirements do not qualify."},
-        "alignment": {"type": "score", "instructions": "How necessary is the entire requested change for the supplied work item from external evidence only; conflicting or insufficient evidence scores below 8?", "criteria": LEVELS},
+        "alignment": {"type": "score", "instructions": "For assent, resolve the change from previous_assistant_reply. How necessary is the entire requested change for the supplied work item from external evidence only; conflicting or insufficient evidence scores below 8?", "criteria": LEVELS},
         "replacement": {"type": "noul", "instructions": "Does this request replace, rather than clarify, the pending request?"},
     }
     answers = _ask_jev(asdict(evidence), questions)

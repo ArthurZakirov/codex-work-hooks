@@ -28,6 +28,8 @@ Set `WORK_HOOKS_CLASSIFIER=jev` in the environment that launches Codex to use Je
 
 **Set up a work item in chat.** Paste the criteria with their source, or ask Codex to read a ticket, message or file through a tool it already has. Codex replies with the work item, source and criteria. Scope Check stores this receipt for the current chat. An attributed paste relies on the user's attribution. A lookup relies on the worker reading the source.
 
+**Short follow-ups.** For a reply such as “go,” the hook includes the previous assistant reply from the same chat when asking the configured classifier to identify and assess the proposed action. The proposal provides context; the selected work item supplies the acceptance criteria.
+
 **Use the criteria.** Later professional implementation requests are compared with the saved criteria. A new source for the same item adds a clarification. Selecting another item replaces the active evidence. Discussion, team communications and personal requests can proceed independently. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py)
 
 ## Tests

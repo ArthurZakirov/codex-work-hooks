@@ -1,6 +1,10 @@
+import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 from pytest_bdd import given, when, then, scenarios
+from work_hooks.adapters import sessions
 from work_hooks.adapters.classifiers import codex, jev
 from work_hooks.adapters.criteria import SessionCriteria
 from work_hooks.core.models import Session
@@ -112,3 +116,53 @@ def workflow_allowed(chat):
 @when("the user combines ticket lookup with an unrelated refactor")
 def mixed_request(chat):
     submit(chat, "Fetch OPS-17 and refactor the entire dispatch service into a new architecture.")
+
+
+@when("the user clarifies that the current project is personal")
+def clarify_ownership(chat):
+    submit(chat, "This is my personal project, not work.")
+
+
+@when("the user asks to proceed without restating the task")
+def continue_implementation(chat):
+    submit(chat, "fo implement")
+
+
+@when("the user builds an agent to improve their own development workflow")
+def build_developer_tool(chat):
+    submit(chat, "Build me a coding agent that organizes my debugging notes so I can work faster on my team's Java services.")
+
+
+@when("the user builds an agent as a team deliverable")
+def build_team_agent(chat):
+    submit(chat, "Our platform team commissioned an agent that diagnoses vulnerabilities in company Java services. Implement that service for the team.")
+
+
+@given("the assistant has proposed a private developer workflow change")
+def offer_personal_tool(chat, tmp_path, monkeypatch):
+    record_reply(chat, tmp_path, monkeypatch, "I can build a debugging-notes assistant for your own development workflow. Shall I implement it?")
+
+
+@given("the assistant has proposed a change to the team's service")
+def offer_team_change(chat, tmp_path, monkeypatch):
+    record_reply(chat, tmp_path, monkeypatch, "I can add a deletion endpoint to the team's dispatch service. Shall I implement it?")
+
+
+def record_reply(chat, tmp_path, monkeypatch, message):
+    monkeypatch.setenv("PLUGIN_DATA", str(tmp_path))
+    directory = sessions.session_directory("probe")
+    sessions.save(directory, chat["session"])
+    event = {"session_id": "probe", "hook_event_name": "Stop", "last_assistant_message": message}
+    dispatcher = Path(__file__).resolve().parents[2] / "src/scope-check/hooks/dispatch.py"
+    subprocess.run([sys.executable, dispatcher], input=json.dumps(event), text=True, check=True)
+    chat["session"] = sessions.load(directory)
+
+
+@when("the user says go")
+def say_go(chat):
+    submit(chat, "go")
+
+
+@given("the assistant has proposed an unrelated team feature")
+def offer_unrelated_feature(chat, tmp_path, monkeypatch):
+    record_reply(chat, tmp_path, monkeypatch, "I can add weekly billing forecasts to our dispatch team's service. Shall I implement that?")

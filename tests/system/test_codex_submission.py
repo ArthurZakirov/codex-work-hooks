@@ -84,7 +84,9 @@ def check_acknowledgment(chat, ticket_turn):
 def submit_implementation(chat, first_turn):
     _, events = first_turn
     thread = next(event["thread_id"] for event in events if event["type"] == "thread.started")
-    chat.request = "Implement the exact deletion behavior specified in our selected team brief."
+    chat.run(*chat.flags, "resume", thread,
+             "What specific change would you implement for the selected brief? Describe it and ask whether to proceed.").check_returncode()
+    chat.request = "go"
     chat.run(*chat.flags, "resume", thread, chat.request).check_returncode()
 
 

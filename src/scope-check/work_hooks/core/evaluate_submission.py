@@ -7,14 +7,15 @@ from work_hooks.ports.scope_classifier import ScopeClassifier
 
 def evaluate_submission(request: str, session: Session, classify: ScopeClassifier,
                         requirements: Requirements, session_id: str) -> Decision:
-    owner = classify.ownership(request, session.ownership, session.pending)
+    active_pending = "" if session.ownership == Ownership.PERSONAL.value else session.pending
+    owner = classify.ownership(request, session.ownership, active_pending, session.previous_assistant_reply)
     if owner is Ownership.PERSONAL:
         return Decision(replace(session, ownership=owner.value, approved=request), "")
 
     session = replace(session, ownership=owner.value)
     records = requirements(session_id)
     criteria = "\n".join(f"{r.source_ref} ({r.author_id}, {r.revision}): {r.text}" for r in records)
-    grade = classify.classify(ClassificationInput(request, session.pending, criteria))
+    grade = classify.classify(ClassificationInput(request, active_pending, criteria, session.previous_assistant_reply))
     kind = grade.kind
     if kind is AssessmentKind.EXPLANATION:
         return Decision(session, "Explain using the conversation context. Do not implement changes.")

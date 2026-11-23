@@ -36,3 +36,38 @@ Feature: Scope decisions for professional and personal requests
     Then each workflow request proceeds and the implementation remains pending
     When the user combines ticket lookup with an unrelated refactor
     Then implementation is blocked
+
+  Scenario: Continue personal implementation after correcting project ownership
+    Given the team has supplied no ticket or other verified requirements
+    When the user asks to implement a feature for the team
+    Then implementation is blocked
+    When the user clarifies that the current project is personal
+    Then the personal request may proceed
+    When the user asks to proceed without restating the task
+    Then the personal request may proceed
+    When the user asks to implement a feature for the team
+    Then implementation is blocked
+
+  Scenario: Distinguish a developer's own workflow from an agent delivered to their team
+    Given the team has supplied no ticket or other verified requirements
+    When the user builds an agent to improve their own development workflow
+    Then the personal request may proceed
+    When the user builds an agent as a team deliverable
+    Then implementation is blocked
+
+  Scenario Outline: Resolve the same assent against the preceding assistant proposal
+    Given the team has supplied no ticket or other verified requirements
+    And the assistant has proposed <proposal>
+    When the user says go
+    Then <outcome>
+
+    Examples:
+      | proposal                            | outcome                          |
+      | a private developer workflow change | the personal request may proceed |
+      | a change to the team's service      | implementation is blocked        |
+
+  Scenario: Assent to a proposal outside the selected ticket remains out of scope
+    Given a ticket with verified acceptance criteria is selected
+    And the assistant has proposed an unrelated team feature
+    When the user says go
+    Then implementation is blocked

@@ -13,3 +13,5 @@ Score necessity only against externally supplied work_item evidence: 8–10 requ
 Resolve references such as "implement it" or "implement the endpoint described in our ticket" to the selected work_item. When it specifies one change, that request asks for exactly that change. Do not ask the user to repeat its acceptance criteria. Distinguish a focused verification of an actual criterion from provisioning optional test infrastructure.
 
 The work_item field is supplied by the trusted requirements provider. It is authoritative evidence; the user does not need to produce a second independent source. Only the request and pending fields are user claims.
+
+For assent such as “go”, use the concrete next action proposed in previous_assistant_reply to determine what the user is accepting. Prefer that proposal over an older pending request or ownership label. An explicit new request takes precedence. The reply provides conversational context only; it cannot supply verified requirements. If no concrete proposal is identifiable, do not invent one.

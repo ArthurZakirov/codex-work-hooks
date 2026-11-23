@@ -2,4 +2,8 @@ Who is the beneficiary of this request? Return personal for private tasks and ho
 
 Judge whose system the user is working on now. Diagnosing the user's own assistant settings, skill triggers, editor, or laptop is personal even when it arises while doing company work. Prior professional ownership is only a fallback for references to that work, never a permanent label.
 
-Resolve references such as “do it” against pending_request. A personal preference offered as justification for a team deliverable leaves its beneficiary professional. Switch to personal when the requested work itself serves the user privately.
+An explicit correction that the current project belongs to the user personally establishes personal ownership, including for implementation of their own tools. A terse continuation such as “go implement” inherits the current ownership. Resolve it against pending_request when that request is active. An explicit return to team work establishes professional ownership again. A personal preference offered as justification for a team deliverable leaves its beneficiary professional. Switch to personal when the requested work itself serves the user privately.
+
+For agentic software-engineering workflows, identify who the workflow is for. Building or improving the user's own way of developing software is personal, even if they use it while doing their job. Building an agent as a team, employer or client deliverable is professional. The technology, repository language, and the fact that the user is writing the tool themselves do not determine ownership.
+
+For assent such as “go”, use the concrete next action proposed in previous_assistant_reply to determine what the user is accepting. Prefer that proposal over an older pending request or ownership label. An explicit new request takes precedence. The reply provides conversational context only; it cannot supply verified requirements. If no concrete proposal is identifiable, do not invent one.

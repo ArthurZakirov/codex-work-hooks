@@ -18,9 +18,10 @@ def main() -> None:
         directory = sessions.session_directory(event["session_id"])
         requirements = SessionCriteria(directory)
         if event["hook_event_name"] == "Stop":
+            reply = event.get("last_assistant_message") or ""
+            sessions.save(directory, replace(sessions.load(directory), previous_assistant_reply=reply))
             awaiting = directory / "awaiting-criteria"
             if awaiting.exists():
-                reply = event.get("last_assistant_message") or ""
                 saved = requirements.record(reply)
                 unavailable = reply.lstrip().startswith("Source unavailable:")
                 if not saved and not unavailable and not event.get("stop_hook_active"):

@@ -10,9 +10,10 @@ RESOURCES = Path(__file__).resolve().parents[2] / "resources"
 SCOPE_RUBRIC = RESOURCES / "prompts/scope.md"
 
 
-def ownership(request: str, previous: str, pending_request: str) -> Ownership:
+def ownership(request: str, previous: str, pending_request: str, previous_assistant_reply: str) -> Ownership:
     rubric = (RESOURCES / "prompts/ownership.md").read_text()
-    prompt = rubric + json.dumps({"request": request, "previous": previous, "pending_request": pending_request})
+    prompt = rubric + json.dumps({"request": request, "previous": previous, "pending_request": pending_request,
+                         "previous_assistant_reply": previous_assistant_reply})
     output = _run_codex_classifier(prompt, RESOURCES / "ownership.json")
     return Ownership(json.loads(output)["ownership"])
 
@@ -26,6 +27,7 @@ def _build_assessment_prompt(submission: ClassificationInput) -> str:
     evidence = {
         "request": submission.request,
         "pending": submission.pending_request,
+        "previous_assistant_reply": submission.previous_assistant_reply,
         "work_item": submission.work_item,
     }
     return SCOPE_RUBRIC.read_text() + "\nReturn only JSON, without fences.\n" + json.dumps(evidence)
