@@ -13,7 +13,7 @@ from work_hooks.adapters.codex.events import dispatch
 
 def main() -> None:
     try:
-        classify = {"codex": codex, "jev": jev}[os.getenv("WORK_HOOKS_CLASSIFIER", "jev")]
+        classify = {"codex": codex, "jev": jev}[os.getenv("WORK_HOOKS_CLASSIFIER", "codex")]
         event = json.load(sys.stdin)
         requirements = unavailable
         fixture = os.getenv("WORK_HOOKS_DEMO_TICKET")

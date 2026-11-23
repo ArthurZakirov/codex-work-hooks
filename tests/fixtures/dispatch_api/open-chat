@@ -3,8 +3,10 @@ set -eu
 fixture=$(cd "$(dirname "$0")" && pwd)
 source "$fixture/prepare-mac.sh"
 prepare_tools
-export WORK_HOOKS_CLASSIFIER=jev
-prepare_jev
+export WORK_HOOKS_CLASSIFIER="${WORK_HOOKS_CLASSIFIER:-codex}"
+if [[ "$WORK_HOOKS_CLASSIFIER" == jev ]]; then
+  prepare_jev
+fi
 checkout=$(cd "$fixture/../../.." && pwd)
 experiment=$(mktemp -d "${TMPDIR:-/tmp}/dispatch-eval-XXXXXX")
 login_home=${WORK_HOOKS_TEST_AUTH_HOME:-${CODEX_HOME:-$HOME/.codex}}
@@ -46,7 +48,7 @@ import subprocess
 import sys
 
 program = Path(os.environ["PLUGIN_ROOT"]) / "hooks/dispatch.py"
-print("Classifier:", os.getenv("WORK_HOOKS_CLASSIFIER", "jev"), flush=True)
+print("Classifier:", os.getenv("WORK_HOOKS_CLASSIFIER", "codex"), flush=True)
 for index, event in enumerate((
     {"hook_event_name": "UserPromptSubmit", "prompt": "Build a banana game for my own amusement."},
     {"hook_event_name": "PostToolUse", "tool_name": "apply_patch", "tool_use_id": "probe",

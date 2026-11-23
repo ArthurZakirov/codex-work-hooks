@@ -54,7 +54,7 @@ def request_personal_help(chat):
 
 
 def submit(chat, prompt):
-    provider = {"jev": jev, "codex": codex}[os.getenv("WORK_HOOKS_CLASSIFIER", "jev")]
+    provider = {"jev": jev, "codex": codex}[os.getenv("WORK_HOOKS_CLASSIFIER", "codex")]
     decision = evaluate_submission(prompt, chat["session"], provider, chat["source"], "probe")
     chat.update(session=decision.session, decision=decision, prompt=prompt)
 

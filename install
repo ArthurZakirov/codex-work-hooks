@@ -18,8 +18,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Requirements:
   parallel-review   Signed-in Codex CLI with access to the reviewer model.
-  scope-check       By default, export JEV_API_KEY or create the macOS login
-                    Keychain password item codex-work-hooks.jev.
+  scope-check       Signed-in Codex CLI with access to gpt-6-luna by default.
+                    Jev credentials are needed only for WORK_HOOKS_CLASSIFIER=jev.
 
 Upgrading from the combined work-hooks plugin?
   Run codex plugin remove work-hooks@work-hooks before installing its replacement.

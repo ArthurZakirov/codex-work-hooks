@@ -5,7 +5,7 @@ Install either plugin from one marketplace. Each has its own hook definitions, p
 | Install | What it does | What it needs |
 | --- | --- | --- |
 | `./install parallel-review` | Routes native code and Markdown edits to matching reviewers and returns their report to the worker | Codex login and access to the configured reviewer model |
-| `./install scope-check` | Checks professional requests against externally authorized requirements before implementation | Jev credential by default |
+| `./install scope-check` | Checks professional requests against externally authorized requirements before implementation | Codex login with access to `gpt-6-luna` by default |
 | `./install both` | Enables both behaviors | Both sets of prerequisites |
 
 ## Install with stock Codex
@@ -18,14 +18,16 @@ Install either plugin from one marketplace. Each has its own hook definitions, p
    cd codex-work-hooks
    ```
 
-3. If installing Scope Check, configure its credential as described below.
+3. Scope Check uses your Codex login by default. For the optional Jev classifier, configure its credential below.
 4. Run the install command from the table. Open a fresh `codex` and trust the installed plugin hooks when prompted. In `/hooks`, compare the source with the installed path printed by the installer.
 
 **Existing installations.** If upgrading from the combined plugin, remove its old registration with `codex plugin remove work-hooks@work-hooks`, then install your selection. Removing an old plugin can change access to its historical session data. Start a fresh chat for the new plugin IDs.
 
 **Switch later.** Use `/plugins` to manage installed plugins. To remove one explicitly, run `codex plugin remove scope-check@work-hooks` or `codex plugin remove parallel-review@work-hooks`. Rerun its install command to restore it. Start a new session after changing the selection.
 
-## Supply the Jev credential
+## Optional Jev classifier
+
+Set `WORK_HOOKS_CLASSIFIER=jev` in the environment that launches Codex to use Jev.
 
 **macOS, including daemon-backed Codex.** In **Keychain Access**, choose the **login** keychain and create a new password item. Set **Keychain Item Name** to `codex-work-hooks.jev`, set **Account Name** to your macOS username and enter the Jev API key in **Password**. Scope Check looks up that item when its process has no exported key. The login keychain must be unlocked and macOS may ask you to allow access. You can then start stock `codex` normally.
 
@@ -48,7 +50,7 @@ flowchart LR
     C & M --> F[Worker reads review.md]
 ```
 
-**Check work scope.** Personal requests proceed. Professional implementations need verified external requirements. The default requirements provider returns no evidence, so these requests remain blocked until a provider is configured. Explanation and colleague-assistance exceptions remain available. Chat text alone cannot authorize implementation. The demo supplies a fixture provider. The optional Codex classifier is selected with `WORK_HOOKS_CLASSIFIER=codex`. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py) · [Requirements port](src/scope-check/work_hooks/ports/requirements.py)
+**Check work scope.** Personal requests proceed. Professional implementations need verified external requirements. The default requirements provider returns no evidence, so these requests remain blocked until a provider is configured. Explanation and colleague-assistance exceptions remain available. Chat text alone cannot authorize implementation. The demo supplies a fixture provider. The default Codex classifier uses `gpt-6-luna` with low reasoning effort. [Submission policy](src/scope-check/work_hooks/core/evaluate_submission.py) · [Requirements port](src/scope-check/work_hooks/ports/requirements.py)
 
 **Parallel Review.** A successful native `apply_patch` call records its patch excerpts under the Codex session and turn IDs. At stop, code goes to experience, standards and correctness reviewers. Markdown goes to the Markdown reviewer. A mixed patch triggers both groups. Each reviewer receives only its assigned excerpts in a temporary workspace. The worker receives one report path and applies confirmed fixes. A repeated stop with no new edits returns immediately. [Supported file types](src/parallel-review/hooks/patches.py) · [Review guidance](src/parallel-review/prompts)
 
@@ -73,6 +75,6 @@ Install test dependencies with `python3 -m pip install -r tests/requirements.txt
 | Integration, local | `python3 -m pytest tests/integration` | Live scope classification and a stand-alone review report |
 | System, local | `WORK_HOOKS_TEST_AUTH_HOME="$HOME/.codex" python3 -m pytest tests/system` | Independently installed plugins block or resume a real worker and deliver reviewer findings |
 
-Live reviews use Codex login, a low reasoning effort and the default `gpt-6-luna` model. Set `WORK_HOOKS_MODEL` to an available reviewer model if needed. Integration scope scenarios use Jev by default. System scenarios use disposable Codex homes and need file-backed login for the test worker. [Review integration scenario](tests/integration/review.feature) · [Review system scenario](tests/system/review.feature)
+Live reviews use Codex login, a low reasoning effort and the default `gpt-6-luna` model. Set `WORK_HOOKS_MODEL` to an available reviewer model if needed. Integration scope scenarios use Codex by default. System scenarios use disposable Codex homes and need file-backed login for the test worker. [Review integration scenario](tests/integration/review.feature) · [Review system scenario](tests/system/review.feature)
 
-For the interactive demo, run `tests/fixtures/dispatch_api/open-chat`. It prepares the isolated workspace, installs both plugins and checks a real Jev submission before opening chat. Use `--check-submit` for just the submission probe or `--check` to also exercise the reviewers. [Sample service](tests/fixtures/dispatch_api/service.py) · [Demo ticket](tests/fixtures/dispatch_api/OPS-17.md)
+For the interactive demo, run `tests/fixtures/dispatch_api/open-chat`. It prepares the isolated workspace, installs both plugins and checks a live scope submission before opening chat. Use `--check-submit` for just the submission probe or `--check` to also exercise the reviewers. [Sample service](tests/fixtures/dispatch_api/service.py) · [Demo ticket](tests/fixtures/dispatch_api/OPS-17.md)
