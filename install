@@ -17,12 +17,6 @@ def main() -> None:
     parser.add_argument("plugin", choices=["scope-check"], nargs="?")
     parser.parse_args()
 
-    home = Path(os.getenv("CODEX_HOME") or Path.home() / ".codex")
-    legacy = home / "plugins/cache/work-hooks/work-hooks"
-    if legacy.is_dir() and any(legacy.glob("*/.codex-plugin/plugin.json")):
-        sys.exit("The combined Work Hooks plugin is still cached. Run "
-                 "codex plugin remove work-hooks@work-hooks, then rerun this installer.")
-
     _probe_scope(checkout / "src/scope-check")
     _register_marketplace(checkout)
     installed = _install_plugin(checkout, "scope-check")

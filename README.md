@@ -14,8 +14,6 @@ cd codex-work-hooks
 
 Start a fresh Codex chat and trust the installed hooks when prompted.
 
-**Existing installs.** The Scope Check plugin ID and `./install scope-check` command are unchanged. The post-edit reviewer now lives in [Parallel Review](https://github.com/ArthurZakirov/codex-parallel-review). For the older combined plugin, remove `work-hooks@work-hooks` before installing Scope Check.
-
 ## Optional Jev classifier
 
 Set `WORK_HOOKS_CLASSIFIER=jev` in the environment that launches Codex to use Jev.
